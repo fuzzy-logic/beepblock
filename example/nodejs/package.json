@@ -1,0 +1,22 @@
+{
+    "name": "beepblock",
+    "version": "0.0.1",
+    "author": "Buildit info@buildit.com",
+    "description": "beepblock",
+    "license": "Apache 2.0",
+    "engines": {
+        "node": ">=6.1"
+    },
+    "scripts": {
+        "start": "node ./app.js"
+    },
+    "dependencies": {
+        "web3": "0.20.1",
+        "ethereumjs-testrpc": "*",
+        "truffle-contract": "*",
+        "truffle": "*"
+    },
+    "devDependencies": {
+        "mocha": "*"
+    }
+}

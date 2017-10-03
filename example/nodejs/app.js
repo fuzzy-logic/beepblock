@@ -6,23 +6,114 @@ Web3 = require('web3');
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 web3.setProvider(TestRPC.provider());
 
-code = fs.readFileSync('./contract/Counter.sol').toString();
-compiledCode = solc.compile(code);
+
+//callbackHell();
+
+
+
+var contractIntstance;
+var account;
+
+getTestAccounts().then((accounts) => {
+  console.log('test accounts: ' + accounts.length);
+  account = accounts[0];
+  return createContractIntstance();
+}).then((ci) => {
+    contractIntstance = ci;
+    return getCount(ci);
+}).then((count) => {
+    console.log('initial count: ' + count);
+    console.log('incrementing...');
+    return increment(contractIntstance);
+}).then((transactionHash) => {
+    console.log('increment transaction id: ' + transactionHash);
+    return getCount(contractIntstance);
+}).then((count) => {
+    console.log('new count: ' + count);
+}).catch(function(err) {
+  console.log('ERROR!');
+  console.dir(err);
+});
+
+
+
+function getTestAccounts() {
+  return new Promise((resolve, reject) => {
+      web3.eth.getAccounts(function(err, accounts) {
+          if (err) reject(err);
+          resolve(accounts);
+      });
+  });
+}
+
+function createContractIntstance() {
+  return new Promise((resolve, reject) => {
+      var code = fs.readFileSync('./contract/Counter.sol').toString();
+      var compiledCode = solc.compile(code);
+      if (compiledCode.contracts) console.log('contract compiled.');
+      var abi = JSON.parse(compiledCode.contracts[':Counter'].interface);
+      if (abi) console.log('abi interface created.');
+      var contract = web3.eth.contract(abi);
+      var bytecode = compiledCode.contracts[':Counter'].bytecode;
+      if (bytecode) console.log('bytecode created.');
+      try {
+        var contractInstance = contract.new({
+            data: '0x' + bytecode,
+            from: account,
+            gas: 90000*2
+        }, (err, deployedContract) => {
+            if (err) reject(err);
+            console.log('deployed new instance: ' + deployedContract.transactionHash);
+            console.log('deployedContract.address: ' + deployedContract.address);
+            //console.dir(deployedContract);
+            if (! deployedContract.address) return; //reject(new Error('deployed contract has no address'));
+            var contractInstance = contract.at(deployedContract.address);
+            resolve(contractInstance);
+        });
+      } catch (err) {
+        console.dir(err);
+        reject(err);
+      }
+
+  });
+}
+
+function getCount(ci) {
+      return new Promise((resolve, reject) => {
+            ci.getCount.call(function(err, count) {
+                if (err) reject(err);
+                resolve(count);
+            });
+      });
+}
+
+function increment(ci) {
+      return new Promise((resolve, reject) => {
+              ci.increment(1, {from: account, gas: 90000*2}, function(err, response) {
+                if (err) reject(err);
+                resolve(response);
+            });
+      });
+}
+
+
+
+
+function callbackHell() {
+
+var code = fs.readFileSync('./contract/Counter.sol').toString();
+var compiledCode = solc.compile(code);
 if (compiledCode.contracts) console.log('contract compiled.');
 
-var callbackCalled = false;
-
 web3.eth.getAccounts(function(err, accounts) {
-  if (callbackCalled) {
-    console.log('callback called twice! exiting!');
-    process.exit(0);
-  }
-  callbackCalled = true;
+
   console.log('\n accounts: ');
   console.dir(accounts);
 
   var account = accounts[0];
   console.log('account[0]: ' + account);
+
+
 
   var abi = JSON.parse(compiledCode.contracts[':Counter'].interface);
   var contract = web3.eth.contract(abi);
@@ -83,9 +174,6 @@ web3.eth.getAccounts(function(err, accounts) {
             console.log('current count: ' + nextCount);
             */
 
-        } else {
-          console.log('contract not deployed, no address returned');
-          //throw new Error('contract not deployed, no address returned');
         }
     });
 
@@ -118,6 +206,8 @@ web3.eth.getAccounts(function(err, accounts) {
 */
 
 });
+
+}
 
 
 

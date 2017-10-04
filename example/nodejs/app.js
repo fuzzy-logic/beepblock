@@ -9,15 +9,36 @@ web3.setProvider(TestRPC.provider());
 
 //callbackHell();
 
+//TODO comments
+//TODO logging
 
 
-var contractIntstance;
-var account;
+
+var _contractName = 'Counter';
+var _compiledCode;
+var _contract; // compiled contract
+var _contractIntstance; // specific contract instance to interact with
+var _account;
+var _deployedContract; //deployed contract handle with address to connect to specific instance
 
 getTestAccounts().then((accounts) => {
   console.log('test accounts: ' + accounts.length);
   account = accounts[0];
-  return createContractIntstance();
+  console.log('_contractName=' + _contractName);
+  return compileContract(_contractName);
+}).then((compiledCode) => {
+    _compiledCode = compiledCode;
+    if (_compiledCode.contracts) console.log(_contractName + ' contract compiled.');
+    if (_compiledCode.contracts[':' + _contractName]) console.log('_compiledCode.contracts[' + _contractName + '] is present');
+    return createEthereumContract(compiledCode, _contractName);
+}).then((contract) => {
+    _contract = contract;
+    if (_contract) console.log('ethereum contract "' + _contractName + '" created.');
+    return deployContract(_compiledCode, _contract, _contractName);
+}).then((dc) => {
+    _deployedContract = dc;
+    if (_deployedContract.address) console.log(_contractName + ' ethereum contract address: ' + _deployedContract.address);
+    return connectToDeployedContract(_contract, _deployedContract.address);
 }).then((ci) => {
     contractIntstance = ci;
     return getCount(ci);
@@ -46,16 +67,40 @@ function getTestAccounts() {
   });
 }
 
-function createContractIntstance() {
+
+function compileContract(contractName) {
   return new Promise((resolve, reject) => {
-      var code = fs.readFileSync('./contract/Counter.sol').toString();
+    try {
+      console.log('compiling ' + contractName + ' contract...');
+      var code = fs.readFileSync('./contract/' + contractName + '.sol').toString();
       var compiledCode = solc.compile(code);
-      if (compiledCode.contracts) console.log('contract compiled.');
-      var abi = JSON.parse(compiledCode.contracts[':Counter'].interface);
-      if (abi) console.log('abi interface created.');
+      resolve(compiledCode);
+    } catch (err) {
+        console.dir(err);
+        reject(err);
+    }
+  });
+}
+
+function createEthereumContract(compiledCode, contractName) {
+  return new Promise((resolve, reject) => {
+    try {
+      if (abi) console.log('creating abi interface for ' + contractName + ' contract.');
+      var abi = JSON.parse(compiledCode.contracts[':' + contractName].interface);
       var contract = web3.eth.contract(abi);
-      var bytecode = compiledCode.contracts[':Counter'].bytecode;
-      if (bytecode) console.log('bytecode created.');
+      resolve(contract);
+    } catch (err) {
+      console.dir(err);
+        reject(err);
+    }
+  });
+}
+
+function deployContract(compiledCode, contract, contractName) {
+  return new Promise((resolve, reject) => {
+      console.log();
+      var bytecode = compiledCode.contracts[':' + contractName].bytecode;
+      //if (bytecode) console.log('bytecode created.');
       try {
         var contractInstance = contract.new({
             data: '0x' + bytecode,
@@ -63,12 +108,12 @@ function createContractIntstance() {
             gas: 90000*2
         }, (err, deployedContract) => {
             if (err) reject(err);
-            console.log('deployed new instance: ' + deployedContract.transactionHash);
-            console.log('deployedContract.address: ' + deployedContract.address);
+             if (! deployedContract.address) return;
+            console.log('deployed ' + contractName + ' instance, transaction_id=' + deployedContract.transactionHash);
+            //console.log('deployedContract.address: ' + deployedContract.address);
             //console.dir(deployedContract);
-            if (! deployedContract.address) return; //reject(new Error('deployed contract has no address'));
-            var contractInstance = contract.at(deployedContract.address);
-            resolve(contractInstance);
+            if (! deployedContract) reject(new Error('deployed contract is undefined'));
+            resolve(deployedContract);
         });
       } catch (err) {
         console.dir(err);
@@ -76,6 +121,15 @@ function createContractIntstance() {
       }
 
   });
+}
+
+
+function connectToDeployedContract(contract, address) {
+      return new Promise((resolve, reject) => {
+        var contractInstance = contract.at(address);
+        if (! contractInstance) reject(new Error('no contract instance for address ' + address));
+        resolve(contractInstance);
+      });
 }
 
 function getCount(ci) {

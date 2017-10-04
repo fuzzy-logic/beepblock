@@ -6,6 +6,7 @@ Web3 = require('web3');
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 web3.setProvider(TestRPC.provider());
 
+//TODO logging (ie: improve on console.log())
 
 async function main(contractName) {
   const account = await getTestAccounts().then(accounts => accounts[0]);

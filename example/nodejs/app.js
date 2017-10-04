@@ -7,211 +7,92 @@ web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 web3.setProvider(TestRPC.provider());
 
 
-//callbackHell();
+async function main(contractName) {
+  const account = await getTestAccounts().then(accounts => accounts[0]);
 
+  const contractInstance = await getContractInstance(contractName, account);
+  const count = await getCount(contractInstance);
 
+  console.log('initial count: ' + count);
+  console.log('incrementing...');
 
-var contractIntstance;
-var account;
+  const transactionHash = await increment(contractInstance, account);
+  console.log('increment transaction id: ' + transactionHash);
 
-getTestAccounts().then((accounts) => {
-  console.log('test accounts: ' + accounts.length);
-  account = accounts[0];
-  return createContractIntstance();
-}).then((ci) => {
-    contractIntstance = ci;
-    return getCount(ci);
-}).then((count) => {
-    console.log('initial count: ' + count);
-    console.log('incrementing...');
-    return increment(contractIntstance);
-}).then((transactionHash) => {
-    console.log('increment transaction id: ' + transactionHash);
-    return getCount(contractIntstance);
-}).then((count) => {
-    console.log('new count: ' + count);
-}).catch(function(err) {
-  console.log('ERROR!');
-  console.dir(err);
-});
+  const newCount = await getCount(contractInstance);
+  console.log('new count: ' + newCount);
+}
 
+async function getContractInstance(contractName, account) {
+  const compiledCode = compileContract(contractName, account);
+  const compiledContract = compiledCode.contracts[":" + contractName];
 
+  const contract = createEthereumContract(compiledContract.interface);
+  const deployedContract = await deployContract(compiledContract.bytecode, account, contract);
 
-function getTestAccounts() {
+  return contract.at(deployedContract.address);
+}
+
+function compileContract(contractName) {
+  console.log('compiling ' + contractName + ' contract...');
+  const code = fs.readFileSync('./contract/' + contractName + '.sol').toString();
+  return solc.compile(code);
+}
+
+function createEthereumContract(iface) {
+  return web3.eth.contract(JSON.parse(iface));
+}
+
+async function deployContract(bytecode, account, contract) {
   return new Promise((resolve, reject) => {
-      web3.eth.getAccounts(function(err, accounts) {
-          if (err) reject(err);
-          resolve(accounts);
+      var contractInstance = contract.new({
+          data: '0x' + bytecode,
+          from: account,
+          gas: 90000*2
+      }, (err, deployedContract) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!deployedContract) {
+            reject(new Error("Deployed contract is undefined"));
+            return;
+          }
+
+          if (!deployedContract.address) {
+            return;
+          }
+
+          resolve(deployedContract);
       });
   });
 }
 
-function createContractIntstance() {
+function toPromise(f) {
   return new Promise((resolve, reject) => {
-      var code = fs.readFileSync('./contract/Counter.sol').toString();
-      var compiledCode = solc.compile(code);
-      if (compiledCode.contracts) console.log('contract compiled.');
-      var abi = JSON.parse(compiledCode.contracts[':Counter'].interface);
-      if (abi) console.log('abi interface created.');
-      var contract = web3.eth.contract(abi);
-      var bytecode = compiledCode.contracts[':Counter'].bytecode;
-      if (bytecode) console.log('bytecode created.');
-      try {
-        var contractInstance = contract.new({
-            data: '0x' + bytecode,
-            from: account,
-            gas: 90000*2
-        }, (err, deployedContract) => {
-            if (err) reject(err);
-            console.log('deployed new instance: ' + deployedContract.transactionHash);
-            console.log('deployedContract.address: ' + deployedContract.address);
-            //console.dir(deployedContract);
-            if (! deployedContract.address) return; //reject(new Error('deployed contract has no address'));
-            var contractInstance = contract.at(deployedContract.address);
-            resolve(contractInstance);
-        });
-      } catch (err) {
-        console.dir(err);
-        reject(err);
-      }
-
+    f((err, res) => {
+      if (err) reject(err);
+      resolve(res);
+    });
   });
+}
+
+function getTestAccounts() {
+  return toPromise(web3.eth.getAccounts);
 }
 
 function getCount(ci) {
-      return new Promise((resolve, reject) => {
-            ci.getCount.call(function(err, count) {
-                if (err) reject(err);
-                resolve(count);
-            });
-      });
+  return toPromise(ci.getCount.call);
 }
 
-function increment(ci) {
-      return new Promise((resolve, reject) => {
-              ci.increment(1, {from: account, gas: 90000*2}, function(err, response) {
-                if (err) reject(err);
-                resolve(response);
-            });
-      });
+function increment(ci, account) {
+  return toPromise(cb => ci.increment(1, {from: account, gas: 900000*2}, cb));
 }
 
+// RUN IT
 
-
-
-function callbackHell() {
-
-var code = fs.readFileSync('./contract/Counter.sol').toString();
-var compiledCode = solc.compile(code);
-if (compiledCode.contracts) console.log('contract compiled.');
-
-web3.eth.getAccounts(function(err, accounts) {
-
-  console.log('\n accounts: ');
-  console.dir(accounts);
-
-  var account = accounts[0];
-  console.log('account[0]: ' + account);
-
-
-
-  var abi = JSON.parse(compiledCode.contracts[':Counter'].interface);
-  var contract = web3.eth.contract(abi);
-  var bytecode = compiledCode.contracts[':Counter'].bytecode;
-
-  //console.log('CounterContract: ');
-  //console.dir(CounterContract);
-
-  //var deployedContract = CounterContract.new(['stuff', 'other', 'misc'], {data: byteCode, from: '', gas: 4700000});
-  try {
-
-    var contractInstance = contract.new({
-        data: '0x' + bytecode,
-        from: account,
-        gas: 90000*2
-    }, (err, deployedContract) => {
-        if (err) {
-            console.log(err);
-            return;
-        }
-
-        // Log the tx, you can explore status with eth.getTransaction()
-        console.log('deployed new instance: ' + deployedContract.transactionHash);
-
-        // If we have an address property, the contract was deployed
-        if (deployedContract.address) {
-            console.log('Contract address: ' + deployedContract.address);
-            // Let's test the deployed contract
-            //testContract(res.address);
-
-            var contractInstance = contract.at(deployedContract.address);
-            console.log('contractInstance: ' + contractInstance.address);
-            //console.dir(contractInstance);
-
-            contractInstance.getCount.call(function(err, count1) {
-                console.log('initial count: ' + count1);
-
-                console.log('incrementing...');
-                contractInstance.increment(1, {from: account, gas: 90000*2}, function(err, res) {
-
-                    if (err) console.dir(err);
-                    if (res) console.log('increment response: ' + res);
-
-                    contractInstance.getCount.call(function(err, count2) {
-                        console.log('new count: ' + count2);
-                    });
-                });
-
-
-
-            });
-
-            /*
-            console.log('initial count: ' + count);
-            console.log('incrementing...');
-            contractInstance.increment({from: account});
-            var nextCount = contractInstance.getCount.call();
-            console.log('current count: ' + nextCount);
-            */
-
-        }
-    });
-
-  } catch (err) {
-      console.log('ERROR!');
-      console.dir(err);
-      process.exit(1);
-  }
-
-
-  //var contractData = CounterContract.new.getData(['stuff', 'other', 'misc'], {data: byteCode});
-
-  //console.log('contractData: ');
-  //console.dir(contractData);
-
-  /*
-
-
-  contractInstance.increment({from: accounts[0]});
-  var count = contractInstance.getCount.call();
-  console.log('current count: ' + count);
-
-  contractInstance.increment({from: accounts[0]});
-  var count = contractInstance.getCount.call();
-  console.log('current count: ' + count);
-
-  contractInstance.increment({from: accounts[0]});
-  var count = contractInstance.getCount.call();
-  console.log('current count: ' + count);
-*/
-
+main('Counter').catch(function(err) {
+  console.log('ERROR!');
+  console.dir(err);
 });
-
-}
-
-
-
-//var account = web3.eth.accounts[0];
-//var balanceWei = web3.eth.getBalance(account).toNumber();
-//var balance = web3.fromWei(balanceWei, 'ether');
-//console.log('account '  + account + ' balance:' + balance);

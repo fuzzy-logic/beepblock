@@ -1,7 +1,7 @@
 test:
 	mocha --recursive
 
-build
+build:
 	npm install
 
 run:

@@ -3,23 +3,23 @@ pragma solidity ^0.4.13;
 // basic energy trading contract
 
 contract Electrade {
-    byte32 producer;
-    byte32 consumer;
+    bytes32 producer;
+    bytes32 consumer;
     uint unitPrice;
     uint units;
 
-function Electrade(pro, con, price, units) {
+function Electrade(bytes32 pro, bytes32 con, uint price, uint u) {
   producer = pro;
 	consumer = con;
 	unitPrice = price;
-	units = units;
+	units = u;
     }
 
-  function getProducer() constant returns (byte32) {
+  function getProducer() constant returns (bytes32) {
     return producer;
   }
 
-  function getConsumer() constant returns (byte32) {
+  function getConsumer() constant returns (bytes32) {
     return consumer;
   }
 

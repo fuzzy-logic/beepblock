@@ -7,13 +7,15 @@ contract Electrade {
     bytes32 consumer;
     uint unitPrice;
     uint units;
+    uint unitsDelivered;
+    boolean fulfilled;
 
 function Electrade(bytes32 pro, bytes32 con, uint price, uint u) {
   producer = pro;
 	consumer = con;
 	unitPrice = price;
 	units = u;
-    }
+}
 
   function getProducer() constant returns (bytes32) {
     return producer;
@@ -29,6 +31,17 @@ function Electrade(bytes32 pro, bytes32 con, uint price, uint u) {
 
   function getUnitPrice() constant returns (uint) {
     return unitPrice;
+  }
+
+  function deliverUnit() {
+    unitsDelivered++;
+    if (unitsDelivered == units) {
+      fulfillContract();
+    }
+  }
+
+  function fulfillContract() {
+
   }
 
 }

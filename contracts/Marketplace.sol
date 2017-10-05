@@ -20,9 +20,11 @@ contract Marketplace {
 
            // Auction metadata
            uint units;
-           float pricePerUnit;
+           uint unitPrice;
            bool isLive;
-           Bid winningBid;
+           uint winningBid;
+
+           Bid bid;
        }
 
 
@@ -42,7 +44,6 @@ contract Marketplace {
         a.seller = msg.sender;
         a.unitPrice = _price;
         a.units = _units;
-        a.currentBid = _startingPrice;
 
         // create event, see above
         // AuctionCreated(auctionId, a.title, a.startingPrice, a.reservePrice);
@@ -51,15 +52,15 @@ contract Marketplace {
     }
 
 
-    function placeBid(uint auctionId, uint _unitPrice, _units) returns (bool success) {
+    function placeBid(uint auctionId, uint _unitPrice, uint _units) returns (bool success) {
 
     // for now units must match units advertised
        //uint256 amount = msg.value; // example of current transfer?
-       Auction a = auctions[auctionId];
+        Auction a = auctions[auctionId];
 
        // do checks, throw toys out of pram / shit pants (delete as appropriate)
        if (a.unitPrice > _unitPrice) return false; // or throw?
-       if (! a.isLive) throw; // or return false? the perpetual question...
+       if (! a.isLive) return false; // or return false? the perpetual question...
 
        // end auction
        a.isLive= false;
@@ -69,8 +70,9 @@ contract Marketplace {
    }
 
 
-   function getAuctions() constant returns (Auction[]) {
-       return auctions;
+   function getAuctions() constant returns (bytes32[]) {
+      bytes32[] _auctions;
+       return _auctions;
    }
 
 }

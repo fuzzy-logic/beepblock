@@ -3,7 +3,7 @@ var Counter = artifacts.require("./Counter.sol");
 contract('Counter', function(accounts) {
   it("should start counter at zero", function() {
     return Counter.deployed().then(function(instance) {
-      return instance.getCounter.call(accounts[0]);
+      return instance.getCount();
     }).then(function(count) {
       assert.equal(count.valueOf(), 0, "counter should start at zero");
     });
@@ -13,9 +13,9 @@ contract('Counter', function(accounts) {
     var counter;
     return Counter.deployed().then(function(instance) {
       counter = instance;
-      return counter.increment.call();
+      return counter.increment(1);
     }).then(function() {
-      return counter.getCounter.call();
+      return counter.getCount();
     }).then(function(count) {
         assert.equal(count.valueOf(), 1, "counter should increment to 1");
     });

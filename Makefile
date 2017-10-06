@@ -10,6 +10,8 @@ configure:
 clean:
 	rm -rf ./build/*
 
-test:
-	testrpc
+snuffle:
+	testrpc & echo $$! > testrpc.pid
 	truffle test
+	kill `cat testrpc.pid`
+	rm testrpc.pid	

@@ -1,17 +1,19 @@
-var TestRPC = require("ethereumjs-testrpc"); // in process local testrpc block chain
+//var TestRPC = require("ethereumjs-testrpc"); // in process local testrpc block chain
 var solc = require('solc');
 var fs = require('fs');
 var contract = require("truffle-contract");
 Web3 = require('web3');
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-web3.setProvider(TestRPC.provider());
+//web3.setProvider(TestRPC.provider());
 
 //TODO logging (ie: improve on console.log())
 
-async function main(contractName) {
-  const account = await getTestAccounts().then(accounts => accounts[0]);
+async function main(contractName, account, password) {
+  web3.personal.unlockAccount(account, password, 15000);
+  console.log(web3.eth.getBalance(account));
 
   const contractInstance = await getContractInstance(contractName, account);
+  console.log("Executing script with contract instance");
   const count = await getCount(contractInstance);
 
   console.log('initial count: ' + count);
@@ -41,15 +43,18 @@ function compileContract(contractName) {
 }
 
 function createEthereumContract(iface) {
+  console.log("Creating Ethereum Contract");
   return web3.eth.contract(JSON.parse(iface));
 }
 
 async function deployContract(bytecode, account, contract) {
+  console.log("Deploying Contract");
+
   return new Promise((resolve, reject) => {
       var contractInstance = contract.new({
           data: '0x' + bytecode,
           from: account,
-          gas: 90000*2
+          gas: '0x20000'
       }, (err, deployedContract) => {
           if (err) {
             reject(err);
@@ -88,12 +93,12 @@ function getCount(ci) {
 }
 
 function increment(ci, account) {
-  return toPromise(cb => ci.increment(1, {from: account, gas: 900000*2}, cb));
+  return toPromise(cb => ci.increment(1, {from: account, gas: '0x20000'}, cb));
 }
 
 // RUN IT
 
-main('Counter').catch(function(err) {
+main('Counter', process.env.ETH_ACCOUNT, process.env.ETH_PASSWORD).catch(function(err) {
   console.log('ERROR!');
   console.dir(err);
 });

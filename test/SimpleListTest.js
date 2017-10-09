@@ -3,33 +3,27 @@
 
 var SimpleList = artifacts.require("./SimpleList.sol");
 
+contract('SimpleList', function() {
+  it("should fucking work", async function() {
+      const instance = await SimpleList.deployed();
+      const initialCount = (await instance.getEntityCount());
+      console.log('Initial size: ' + initialCount);
+      assert.equal(0, initialCount, "Initial size should be 0");
 
+      await instance.newEntity("bob", 12);
 
-  contract('Marketplace', function(accounts) {
-    it("should create a new market place with no producer auctions", function() {
-      var contractInstance;
-      return SimpleList.deployed().then(function(instance) {
-        contractInstance = instance;
-        return contractInstance.getEntityCount();
-      }).then(function(count) {
-        console.log('initial count: ' + count);
-        assert.equal(count, 0, "new simple list count should be zero");
-        return contractInstance.newEntity.call(101);
-      }).then(function(rowNumber) {
-        console.log('new enrtity row num: ' + JSON.stringify(rowNumber));
-        console.dir(rowNumber);
-        assert.equal(rowNumber, 1, "should be row num 1");
-        return contractInstance.newEntity.call(201);
-      }).then(function(rowNumber) {
-        console.log('new enrtity row num: ' + JSON.stringify(rowNumber));
-        console.dir(rowNumber);
-        //console.dir(auctionsIndex);
-        assert.equal(rowNumber, 2, "should be row num 2");
-        return contractInstance.getEntityCount();
-      }).then(function(count) {
-          console.log('final count: ' + count);
-          console.dir(count);
-        assert.equal(count, 2, "after creating the first two auctions there should be 2 auctions in total");
-      });
+      const newCount = await instance.getEntityCount();
+      console.log('Size after first insert: ' + newCount);
+      assert.equal(1, newCount, "Size after first insert should be 1");
+
+      await instance.newEntity("alice", 13);
+
+      const newNewCount = await instance.getEntityCount();
+      console.log('Size after second insert: ' + newNewCount);
+      assert.equal(2, newNewCount, "Size after secound insert should be 2");
+
+      const secondItemName = await instance.getEntityName(1);
+      console.log("Name of second item: " + secondItemName);
+      assert.equal("alice", secondItemName, "Second item name should be 'alice'");
     });
-  });
+});

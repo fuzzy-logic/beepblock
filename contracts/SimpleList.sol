@@ -1,23 +1,27 @@
-pragma solidity ^0.4.6;
+pragma solidity ^0.4.13;
 
 contract SimpleList {
 
   struct EntityStruct {
-    address entityAddress;
+    string entityName;
     uint entityData;
     // more fields
   }
 
   EntityStruct[] public entityStructs;
 
-  function newEntity(uint entityData) public returns(uint rowNumber) {
+  function newEntity(string entityName, uint entityData) public returns (uint rowNumber) {
     EntityStruct memory newEntity;
-    newEntity.entityAddress = msg.sender;
-    newEntity.entityData = entityData;
-    return entityStructs.push(newEntity) -1;
+    newEntity.entityName = entityName;
+    newEntity.entityData    = entityData;
+    return entityStructs.push(newEntity)-1;
   }
 
   function getEntityCount() public constant returns(uint entityCount) {
     return entityStructs.length;
+  }
+
+  function getEntityName(uint rowNumber) public constant returns (string entityName) {
+    return entityStructs[rowNumber].entityName;
   }
 }

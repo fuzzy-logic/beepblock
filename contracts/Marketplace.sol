@@ -11,24 +11,22 @@ contract Marketplace {
            uint unitPrice;
        }
 
-    bytes32[] public auctionsIndex;
+
+    Auction[] auctions;
 
 
     function Marketplace() {
         //nuttin' to see here yet, move on - @domfox the Catford kingpin
     }
 
-    function createAuction(bytes32 key) returns (bytes32[]) {
-        auctionsIndex.push(key);
-        return auctionsIndex;
+    function createAuction(uint _units, uint _price) returns (bool) {
+        Auction memory auction = Auction({seller: msg.sender, units: _units, unitPrice: _price});
+        auctions.push(auction);
+        return true;
     }
 
-    function numAuctions() constant returns (uint) {
-       return auctionsIndex.length;
-     }
-
-     function getAuctions() constant returns (bytes32[]) {
-        return auctionsIndex;
-      }
+    function auctionCount() constant returns (uint) {
+        return auctions.length;
+    }
 
 }

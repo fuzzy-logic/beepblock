@@ -24,10 +24,10 @@ contract Marketplace {
         //nuttin' to see here yet, move on - @domfox the Catford kingpin
     }
 
-    function createAuction(uint _units, uint256 _price) returns (uint) {
+    function createAuction(uint _units, uint256 _price) returns (address[]) {
         auctionsIndex.length++;
         auctionsIndex[auctionsIndex.length-1] = msg.sender;
-        return auctionsIndex.length;
+        return auctionsIndex;
     }
 
     function numAuctions() constant returns (uint) {

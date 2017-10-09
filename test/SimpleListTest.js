@@ -18,18 +18,18 @@ var SimpleList = artifacts.require("./SimpleList.sol");
       }).then(function(rowNumber) {
         console.log('new enrtity row num: ' + JSON.stringify(rowNumber));
         console.dir(rowNumber);
-        //assert.equal(auctionsIndex.length, 1, "should be one auction in index");
+        assert.equal(rowNumber, 1, "should be row num 1");
         return contractInstance.newEntity.call(201);
       }).then(function(rowNumber) {
         console.log('new enrtity row num: ' + JSON.stringify(rowNumber));
         console.dir(rowNumber);
         //console.dir(auctionsIndex);
-        //assert.equal(auctionsIndex.length, 2, "should be two auctions in index");
+        assert.equal(rowNumber, 2, "should be row num 2");
         return contractInstance.getEntityCount();
       }).then(function(count) {
           console.log('final count: ' + count);
           console.dir(count);
-        //assert.equal(auctions, 2, "after creating the first two auctions there should be 2 auctions in total");
+        assert.equal(count, 2, "after creating the first two auctions there should be 2 auctions in total");
       });
     });
   });

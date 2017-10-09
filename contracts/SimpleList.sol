@@ -13,7 +13,7 @@ contract SimpleList {
   function newEntity(uint entityData) public returns(uint rowNumber) {
     EntityStruct memory newEntity;
     newEntity.entityAddress = msg.sender;
-    newEntity.entityData    = entityData;
+    newEntity.entityData = entityData;
     return entityStructs.push(newEntity) -1;
   }
 

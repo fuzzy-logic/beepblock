@@ -14,13 +14,15 @@ var Marketplace = artifacts.require("./Marketplace.sol");
       }).then(function(auctions) {
         console.log('initial num auctions: ' + auctions);
         assert.equal(auctions, 0, "a newly created marketplace should have zero auctions");
-        return marketplaceInstance.createAuction.call(1, 120);
+        return marketplaceInstance.createAuction.call('a');
       }).then(function(auctionsIndex) {
         console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
+        //console.dir(auctionsIndex);
         assert.equal(auctionsIndex.length, 1, "should be one auction in index");
-        return marketplaceInstance.createAuction.call(2, 110);
+        return marketplaceInstance.createAuction.call('b');
       }).then(function(auctionsIndex) {
         console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
+        //console.dir(auctionsIndex);
         assert.equal(auctionsIndex.length, 2, "should be two auctions in index");
         return marketplaceInstance.numAuctions();
       }).then(function(auctions) {

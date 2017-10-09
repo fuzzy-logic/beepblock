@@ -11,7 +11,7 @@ contract Marketplace {
            uint unitPrice;
        }
 
-    bytes32[] auctionsIndex;
+    bytes32[] public auctionsIndex;
 
 
     function Marketplace() {
@@ -19,8 +19,6 @@ contract Marketplace {
     }
 
     function createAuction(bytes32 key) returns (bytes32[]) {
-        //auctionsIndex.length++;
-        //auctionsIndex[auctionsIndex.length - 1] = key;
         auctionsIndex.push(key);
         return auctionsIndex;
     }
@@ -28,5 +26,9 @@ contract Marketplace {
     function numAuctions() constant returns (uint) {
        return auctionsIndex.length;
      }
+
+     function getAuctions() constant returns (bytes32[]) {
+        return auctionsIndex;
+      }
 
 }

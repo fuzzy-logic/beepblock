@@ -10,25 +10,19 @@ var Marketplace = artifacts.require("./Marketplace.sol");
       var marketplaceInstance;
       return Marketplace.deployed().then(function(instance) {
         marketplaceInstance = instance;
-        return instance.getAuctions();
+        return instance.numAuctions();
       }).then(function(auctions) {
-        assert.equal(auctions.length, 0, "new marketplace auctions should");
+          console.log('initial num auctions: ' + auctions);
+        assert.equal(auctions, 0, "a newly created marketplace should have zero auctions");
         return marketplaceInstance.createAuction.call(1, 120);
       }).then(function(auctionId) {
-          console.log('auctionId: ' + JSON.stringify(auctionId));
-        assert.equal(auctionId, "1", "first auction should have id of 1");
+        console.log('auctionId: ' + JSON.stringify(auctionId));
+        assert.equal(auctionId, 1, "first auction should have id of 1");
         return marketplaceInstance.numAuctions();
       }).then(function(auctions) {
         console.log('auctions: ' + JSON.stringify(auctions));
-        assert.equal(auctions, 1, "new marketplace auction should be added");
-        return marketplaceInstance.createAuction.call(1, 100);
-      }).then(function(auctionId) {
-          console.log('auctionId: ' + JSON.stringify(auctionId));
-        assert.equal(auctionId, "3", "second auction should have id of 1");
-        return marketplaceInstance.numAuctions();
-      }).then(function(auctions) {
-        console.log('auctions: ' + JSON.stringify(auctions));
-        assert.equal(auctions, 2, "new marketplace auction should be added");
+        console.dir(auctions);
+        assert.equal(auctions, 1, "after creating the first auction there should be 1 marketplace auction in total");
       });
     });
   });

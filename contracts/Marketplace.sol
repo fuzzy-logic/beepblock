@@ -11,27 +11,24 @@ contract Marketplace {
            uint unitPrice;
        }
 
-    //mapping(address => Auction) public auctionsMap;
-    address[] auctionsIndex;
-    //LibCLLu.CLL public auctionsRingBuffer;
+    bytes32[] public auctionsIndex;
 
-    //TODO reminder to research and implements events for auditing...
-    //event AuctionCreated(uint id, string title, uint256 startingPrice, uint256 reservePrice);
-
-    event AuctionCreated(address seller,  uint auctionId, uint totals);
 
     function Marketplace() {
         //nuttin' to see here yet, move on - @domfox the Catford kingpin
     }
 
-    function createAuction(uint _units, uint256 _price) returns (address[]) {
-        auctionsIndex.length++;
-        auctionsIndex[auctionsIndex.length-1] = msg.sender;
+    function createAuction(bytes32 key) returns (bytes32[]) {
+        auctionsIndex.push(key);
         return auctionsIndex;
     }
 
     function numAuctions() constant returns (uint) {
        return auctionsIndex.length;
      }
+
+     function getAuctions() constant returns (bytes32[]) {
+        return auctionsIndex;
+      }
 
 }

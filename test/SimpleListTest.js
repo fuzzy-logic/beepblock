@@ -3,7 +3,7 @@
 
 var SimpleList = artifacts.require("./SimpleList.sol");
 
-contract('Marketplace', function() {
+contract('SimpleList', function() {
   it("should fucking work", async function() {
       const instance = await SimpleList.deployed();
       const initialCount = (await instance.getEntityCount());

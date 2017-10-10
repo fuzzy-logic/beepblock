@@ -106,7 +106,8 @@ function Account({ web3, metaCoin }, accountAddress) {
           from: t.from,
           to: t.to,
           amount: t.value,
-          timestamp: block.timestamp
+          timestamp: block.timestamp,
+          transactionType: t.from.toUpperCase() == accountAddress ? 'D' : 'C'
         }
       })
     );

@@ -7,7 +7,8 @@ export default gql`
       from,
       to,
       amount,
-      timestamp
+      timestamp,
+      transactionType
     }
   }
 `;

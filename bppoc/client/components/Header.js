@@ -35,6 +35,9 @@ class Header extends Component {
             <NavLink href="/#/dashboard">Dashboard</NavLink>
           </NavItem>
           <NavItem>
+            <NavLink href="/#/transactions">Transactions</NavLink>
+          </NavItem>
+          <NavItem>
             <NavLink href="/#/profile">Profile</NavLink>
           </NavItem>
           <NavItem>

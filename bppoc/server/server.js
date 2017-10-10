@@ -37,7 +37,7 @@ require('babel-core/register');
  * CHANGE THIS CONNECTION STING TO AN ONLINE DB OR LOCAL DEPENDING ON YOUR REQUIREMENTS
  * 
  ****************************************************************************************************/
-const MONGO_URI = config.mongodbConn_local;
+const MONGO_URI = config.mongodbConn;
 
 if (!MONGO_URI) {
   throw new Error('You must provide a MongoLab URI');

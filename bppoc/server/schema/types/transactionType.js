@@ -13,7 +13,8 @@ const TransactionType = new GraphQLObjectType({
     from: { type: GraphQLString },
     to: { type: GraphQLString },
     amount: { type: GraphQLString },
-    timestamp: { type: GraphQLInt }
+    timestamp: { type: GraphQLInt },
+    transactionType: { type: GraphQLString }
   }
 });
 

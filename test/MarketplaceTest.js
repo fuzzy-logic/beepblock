@@ -1,12 +1,13 @@
 
-
+const utils = require("./TestUtils");
 
 var Marketplace = artifacts.require("./Marketplace.sol");
+const theInstance = utils.instanceFactory(Marketplace);
+const toAuctionDetails = utils.tupleReader("id", "sellerAddress", "price");
 
 
   contract('Marketplace',  function(accounts) {
-    it("should create a producer consumer marketplace", async function() {
-      var marketplaceInstance = await Marketplace.deployed();
+    theInstance("should create a producer consumer marketplace", async (marketplaceInstance) => {
       var initialCount  = await marketplaceInstance.auctionCount();
       console.log('initial num auctions: ' + initialCount);
       assert.equal(initialCount, 0, "a newly created marketplace should have zero auctions");
@@ -28,13 +29,13 @@ var Marketplace = artifacts.require("./Marketplace.sol");
       var cheapestAuctionId = await marketplaceInstance.findCheapestAuction(105);
       console.log('cheapestAuctionId: ' + JSON.stringify(cheapestAuctionId));
       assert.ok(cheapestAuctionId, "cheapest auction expected to be not null");
-      var auction =  await marketplaceInstance.getAuctionById(cheapestAuctionId);
+      var auction = toAuctionDetails(await marketplaceInstance.getAuctionById(cheapestAuctionId));
       console.log('auction: ' + JSON.stringify(auction));
-      var id = auction[0];
-      var sellerAddress = auction[1];
-      var price = auction[2];
-      assert.ok(id, "retrieved auction id expected to be not null");
-      assert.ok(sellerAddress, "retrieved auction id expected to be not null");
-      assert.equal(price, 90, "retrieved cheapest auction price expected to be 90");
+
+      assert.deepEqual(auction, {
+        id: auction.id,
+        sellerAddress: accounts[0],
+        price: 90
+      });
     });
   });

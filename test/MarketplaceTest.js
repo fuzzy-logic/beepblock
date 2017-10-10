@@ -4,27 +4,37 @@
 var Marketplace = artifacts.require("./Marketplace.sol");
 
 
+  contract('Marketplace',  function(accounts) {
+    it("should create a producer consumer marketplace", async function() {
+      var marketplaceInstance = await Marketplace.deployed();
+      var initialCount  = await marketplaceInstance.auctionCount();
+      console.log('initial num auctions: ' + initialCount);
+      assert.equal(initialCount, 0, "a newly created marketplace should have zero auctions");
 
-  contract('Marketplace', function(accounts) {
-    it("should create a new market place with no producer auctions", async function() {
-      const instance = await Marketplace.deployed();
-      const auctionCount = await instance.numAuctions();
-      console.log('initial num auctions: ' + auctionCount);
-      assert.equal(auctionCount, 0, "a newly created marketplace should have zero auctions");
+      // create 4 test producer auctions for a range of prices
+      var tx1 = await marketplaceInstance.createAuction(120);
+      console.log('tx1: ' + JSON.stringify(tx1));
+      var tx2 = await marketplaceInstance.createAuction(110);
+      var tx3 = await marketplaceInstance.createAuction(100);
+      var tx4 = await marketplaceInstance.createAuction(90);
 
-      const auctionsIndex = await instance.createAuction.call('a');
-      console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
-      console.dir(auctionsIndex);
-      assert.equal(auctionsIndex.length, 1, "should be one auction in index");
+      // test index is correct looking
+      var index = await marketplaceInstance.index();
+      console.log('index: ' + JSON.stringify(index));
+      assert.equal(index.length, 4, "index size expcted to be 4");
 
-      const newIndex = await instance.createAuction.call('b');
-      console.log('auctionsIndex: ' + JSON.stringify(newIndex));
-      console.dir(newIndex);
-      //assert.equal(newIndex.length, 2, "should be two auctions in index");
-
-      const auctions = await instance.getAuctions();
-      console.log('num auctions: ' + JSON.stringify(auctions));
-      console.dir(auctions);
-      assert.equal(auctions.length, 2, "after creating the first two auctions there should be 2 auctions in total");
+      // test retrieval of cheapest auction
+      console.log('finding cheapest auction....');
+      var cheapestAuctionId = await marketplaceInstance.findCheapestAuction(105);
+      console.log('cheapestAuctionId: ' + JSON.stringify(cheapestAuctionId));
+      assert.ok(cheapestAuctionId, "cheapest auction expected to be not null");
+      var auction =  await marketplaceInstance.getAuctionById(cheapestAuctionId);
+      console.log('auction: ' + JSON.stringify(auction));
+      var id = auction[0];
+      var sellerAddress = auction[1];
+      var price = auction[2];
+      assert.ok(id, "retrieved auction id expected to be not null");
+      assert.ok(sellerAddress, "retrieved auction id expected to be not null");
+      assert.equal(price, 90, "retrieved cheapest auction price expected to be 90");
     });
   });

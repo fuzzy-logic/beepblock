@@ -3,25 +3,27 @@ const ethereumService = require('./ethereumService');
 
 const Profile = mongoose.model('profile');
 
-function create(userId, firstName, lastName, accountName, hasBattery) {
-  let profile = new Profile({ 
+create = async (userId, firstName, lastName, accountName, hasBattery) => {
+  
+  const profile = new Profile({ 
     userId, 
     firstName,
     lastName,
     accountName,
     hasBattery
   });
-  return Profile.findOne({ userId })
-    .then(existingProfile => {
-      if (existingProfile) {
-        throw new Error('User already has a profile!');
-      }
-      return ethereumService.createAccount().then((acct) => {
-        console.log(acct);
-        profile.accountAddress = acct.accountAddress;
-        return profile.save();
-      });
-    });
+    
+  if (await Profile.findOne({ userId })) {
+    throw new Error('User already has a profile!');
+  }
+
+  const account = await ethereumService.createAccount();
+
+  profile.accountAddress = account.accountAddress;
+  await profile.save();
+
+  return profile;
+
 }
 
 function save({ userId, hasBattery }) {

@@ -6,29 +6,61 @@ pragma solidity ^0.4.13;
 contract Marketplace {
 
     struct Auction {
+          bytes32 id;
           address seller;
-           uint units;
            uint unitPrice;
        }
 
-    bytes32[] public auctionsIndex;
+
+    bytes32[] auctionIndex;
+    mapping(bytes32 => Auction) public auctions;
 
 
     function Marketplace() {
         //nuttin' to see here yet, move on - @domfox the Catford kingpin
     }
 
-    function createAuction(bytes32 key) returns (bytes32[]) {
-        auctionsIndex.push(key);
-        return auctionsIndex;
+    function createAuction(uint _price) returns (bool) {
+        bytes32 id = keccak256(msg.sender, _price);
+        Auction memory auction = Auction({id: id, seller: msg.sender, unitPrice: _price});
+        auctions[id] = auction;
+        auctionIndex.push(id);
+        return true;
     }
 
-    function numAuctions() constant returns (uint) {
-       return auctionsIndex.length;
-     }
+    function auctionCount() constant returns (uint) {
+        return auctionIndex.length;
+    }
 
-     function getAuctions() constant returns (bytes32[]) {
-        return auctionsIndex;
+    function index() constant returns (bytes32[]) {
+        return auctionIndex;
+    }
+
+    function getAuctionById(bytes32 auctionId) constant returns (bytes32 id, address seller, uint unitPrice) {
+        Auction memory a = auctions[auctionId];
+        return (a.id, a.seller, a.unitPrice);
+    }
+
+    function findCheapestAuction(uint _maxPrice) constant returns (bytes32 cheapestId) {
+      bytes32 NONE = bytes32(0);
+      uint  MAX_PRICE = 0xFFFFFFFF;
+      uint  cheapestPrice = MAX_PRICE; //intentionally maxed out so any price is lower;
+      for(uint i = 0; i < auctionIndex.length; i++)   {
+          Auction memory auction = auctions[auctionIndex[i]];
+          if (auction.unitPrice < cheapestPrice) {
+            cheapestPrice = auction.unitPrice;
+            cheapestId = auction.id;
+          }
       }
+      if (cheapestId != NONE && cheapestPrice < _maxPrice) {
+        return cheapestId;
+      } else {
+        return 0;
+      }
+    }
+
+
+
+
 
 }

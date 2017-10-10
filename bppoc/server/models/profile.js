@@ -7,10 +7,12 @@ const ProfileSchema = new Schema({
   userId: String,
   firstName: String,
   lastName: String,
-  accountName: String,
-  hasBattery: Boolean,
   accountAddress: String,
   address: {}
+});
+
+ProfileSchema.virtual('accountName').get(function() {  
+  return this.firstName + ' ' + this.lastName;
 });
 
 mongoose.model('profile', ProfileSchema);

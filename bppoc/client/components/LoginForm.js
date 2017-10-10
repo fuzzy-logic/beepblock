@@ -37,15 +37,6 @@ class LoginForm extends Component {
     }
   }
 
-  componentWillUpdate(nextProps) {
-    // this.props // the old current set of props
-    // nextProps // the next set of props that will be in place
-    if (!this.props.data.user && nextProps.data.user) {
-      // redirect to dashboard!!!!
-      hashHistory.push('/dashboard');
-    }
-  }
-
   onSubmit(e) {
     e.preventDefault();
     this.props.mutate({

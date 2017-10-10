@@ -11,10 +11,10 @@ contract SimpleList {
   EntityStruct[] public entityStructs;
 
   function newEntity(string entityName, uint entityData) public returns (uint rowNumber) {
-    EntityStruct memory newEntity;
-    newEntity.entityName = entityName;
-    newEntity.entityData    = entityData;
-    return entityStructs.push(newEntity)-1;
+    EntityStruct memory entity;
+    entity.entityName = entityName;
+    entity.entityData    = entityData;
+    return entityStructs.push(entity)-1;
   }
 
   function getEntityCount() public constant returns(uint entityCount) {

@@ -37,8 +37,7 @@ contract Marketplace {
     }
 
     function getAuctionById(bytes32 auctionId) constant returns (bytes32 id, address seller, uint unitPrice) {
-        Auction a = auctions[id];
-        uint price = 90;
+        Auction memory a = auctions[auctionId];
         return (a.id, a.seller, a.unitPrice);
     }
 

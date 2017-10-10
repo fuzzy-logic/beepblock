@@ -1,10 +1,7 @@
+const SimpleList = artifacts.require("./SimpleList.sol");
 
-
-
-var SimpleList = artifacts.require("./SimpleList.sol");
-
-contract('SimpleList', function() {
-  it("should fucking work", async function() {
+contract('SimpleList', () => {
+  it("should just work", async () => {
       const instance = await SimpleList.deployed();
       const initialCount = (await instance.getEntityCount());
       console.log('Initial size: ' + initialCount);

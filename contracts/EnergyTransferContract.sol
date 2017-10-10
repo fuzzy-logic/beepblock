@@ -35,7 +35,7 @@ contract EnergyTransferContract {
   event GridPriceChanged(address grid, uint buyPrice, uint sellPrice, uint minimumMargin);
 
   // Records that a seller price has been offered.
-  event PriceOffered(uint priceId, uint sellPrice);
+  event PriceOffered(uint priceId, uint price);
 
   struct GridPrice {
     // The address of the wallet/contract which represents the grid.
@@ -127,5 +127,22 @@ contract EnergyTransferContract {
     assert(gridPrice.grid != 0);
 
     return (gridPrice.buyPrice, gridPrice.sellPrice, gridPrice.minimumMargin);
+  }
+
+  function offerPrice(uint price) {
+    uint offerId = priceOffers.length++;
+    PriceOffer storage priceOffer = priceOffers[offerId];
+    priceOffer.seller = msg.sender;
+    priceOffer.price = price;
+    priceOffer.isActive = true;
+
+    PriceOffered(offerId, price);
+  }
+
+  function getPriceDetails(uint priceId) constant returns (address seller, uint price, bool isActive) {
+    PriceOffer storage priceOffer = priceOffers[priceId];
+    assert(priceOffer.seller != 0);
+
+    return (priceOffer.seller, priceOffer.price, priceOffer.isActive);
   }
 }

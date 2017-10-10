@@ -1,0 +1,4 @@
+{
+  "mongodbConn_local": "mongodb://127.0.0.1:27017/bppoc",
+  "mongodbConn_online": "mongodb://bppoc:bppoc123@ds159254.mlab.com:59254/bppoc"
+}

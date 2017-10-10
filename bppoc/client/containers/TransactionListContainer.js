@@ -5,7 +5,9 @@ import currentUserTransationsQuery from '../queries/currentUserTransactions';
 
 import TransactionListItem from '../components/TransactionListItem';
 
-class TransactionListContainer extends Component{
+import { Table } from 'reactstrap';
+
+class TransactionListContainer extends Component {
 
   constructor(props) {
     super(props);
@@ -26,21 +28,31 @@ class TransactionListContainer extends Component{
   renderTransactions() {
     return this.state.transactions.map(t => {
       return (
-        <TransactionListItem key={t.id} transaction={t}/>
+        <TransactionListItem key={t.id} transaction={t} />
       )
     })
   }
 
-  render(){
-    if(!this.state.transactions){
-      return(<div>Loading...</div>)
+  render() {
+    if (!this.state.transactions) {
+      return (<div>Loading...</div>)
     }
     return (
       <div>
         <h3>Transactions</h3>
-        <ul>
-          {this.renderTransactions()}
-        </ul>
+        <Table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.renderTransactions()}
+          </tbody>
+        </Table>
       </div>
     )
   }

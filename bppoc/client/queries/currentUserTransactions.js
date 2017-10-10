@@ -6,7 +6,8 @@ export default gql`
       id,
       from,
       to,
-      amount
+      amount,
+      timestamp
     }
   }
 `;

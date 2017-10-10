@@ -18,12 +18,27 @@ const passportConfig = require('./services/authService');
 const ethereumService = require('./services/ethereumService');
 const accountService = require('./services/accountService');
 
+// Config
+const config = require('./config');
+
+// Setup Script
+const setup = require('./setup');
+
 // Create a new Express application
 const app = express();
 
+// Global exception handler
+global.Promise = require('bluebird');
+require('babel-core/register');
+
 // Replace with your mongoLab URI
-const MONGO_URI = 'mongodb://127.0.0.1:27017/bppoc';
-//const MONGO_URI = 'mongodb://bppoc:bppoc123@ds159254.mlab.com:59254/bppoc';
+/*****************************************************************************************************
+ * 
+ * CHANGE THIS CONNECTION STING TO AN ONLINE DB OR LOCAL DEPENDING ON YOUR REQUIREMENTS
+ * 
+ ****************************************************************************************************/
+const MONGO_URI = config.mongodbConn_local;
+
 if (!MONGO_URI) {
   throw new Error('You must provide a MongoLab URI');
 }
@@ -34,7 +49,17 @@ mongoose.Promise = global.Promise;
 // on success or failure
 mongoose.connect(MONGO_URI);
 mongoose.connection
-    .once('open', () => console.log('Connected to MongoLab instance.'))
+    .once('open', async () => {
+      console.log('Connected to MongoLab instance.');
+      console.log('Setup script - running: Account Creation...');
+      await setup.setUpTestAccounts();
+      console.log('Setup script - Account creation completed!');
+      console.log('Setup script - running: Transaction creations...');
+      setTimeout(async () => {
+        await setup.createTransactions();
+        console.log('Setup script - Transaction creation completed!');
+        });
+    })
     .on('error', error => console.log('Error connecting to MongoLab:', error));
 
 // Configures express to use sessions.  This places an encrypted identifier
@@ -90,7 +115,7 @@ app.get('/', requireAuth, function(req, res) {
   res.send({hi: 'there'});
 });
 
-app.get('/createAccount', function(req, res) {
+app.get('/createAccount', async (req, res) => {
   ethereumService.createAccount().then((account) => {
     console.log('returning account..');
     console.log(account);
@@ -98,12 +123,16 @@ app.get('/createAccount', function(req, res) {
   });
 })
 
-app.get('/getAccount/:accountAddress', function (req, res) {
-  ethereumService.getAccount(req.params.accountAddress).then((account) => {
-    console.log('returning account..');
-    console.log(account);
-    res.send(account);
-  });  
+app.get('/getAccount/:accountAddress', async (req, res) => {
+  const account = await ethereumService.getAccount(req.params.accountAddress);
+  console.log('returning account..');
+  console.log(account);
+  res.send(account);
+  // ethereumService.getAccount(req.params.accountAddress).then((account) => {
+  //   console.log('returning account..');
+  //   console.log(account);
+  //   res.send(account);
+  // });  
 });
 
 app.post('/sendCoin', function (req, res) {
@@ -118,5 +147,13 @@ app.post('/sendCoin', function (req, res) {
   });
   
 });
+
+// handle all uncaught exceptions
+// see - https://nodejs.org/api/process.html#process_event_uncaughtexception
+process.on('uncaughtException', err => console.error('uncaught exception:', err));
+// handle all unhandled promise rejections
+// see - http://bluebirdjs.com/docs/api/error-management-configuration.html#global-rejection-events
+// or for latest node - https://nodejs.org/api/process.html#process_event_unhandledrejection
+process.on('unhandledRejection', error => console.error('unhandled rejection:', error));
 
 module.exports = app;

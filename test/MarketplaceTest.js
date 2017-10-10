@@ -6,29 +6,25 @@ var Marketplace = artifacts.require("./Marketplace.sol");
 
 
   contract('Marketplace', function(accounts) {
-    it("should create a new market place with no producer auctions", function() {
-      var marketplaceInstance;
-      return Marketplace.deployed().then(function(instance) {
-        marketplaceInstance = instance;
-        return instance.numAuctions();
-      }).then(function(auctions) {
-        console.log('initial num auctions: ' + auctions);
-        assert.equal(auctions, 0, "a newly created marketplace should have zero auctions");
-        return marketplaceInstance.createAuction.call('a');
-      }).then(function(auctionsIndex) {
-        console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
-        //console.dir(auctionsIndex);
-        //assert.equal(auctionsIndex.length, 1, "should be one auction in index");
-        return marketplaceInstance.createAuction.call('b');
-      }).then(function(auctionsIndex) {
-        console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
-        //console.dir(auctionsIndex);
-        //assert.equal(auctionsIndex.length, 2, "should be two auctions in index");
-        return marketplaceInstance.getAuctions();
-      }).then(function(auctions) {
-        console.log('num auctions: ' + JSON.stringify(auctions));
-        console.dir(auctions);
-        //assert.equal(auctions, 2, "after creating the first two auctions there should be 2 auctions in total");
-      });
+    it("should create a new market place with no producer auctions", async function() {
+      const instance = await Marketplace.deployed();
+      const auctionCount = await instance.numAuctions();
+      console.log('initial num auctions: ' + auctionCount);
+      assert.equal(auctionCount, 0, "a newly created marketplace should have zero auctions");
+
+      const auctionsIndex = await instance.createAuction.call('a');
+      console.log('auctionsIndex: ' + JSON.stringify(auctionsIndex));
+      console.dir(auctionsIndex);
+      assert.equal(auctionsIndex.length, 1, "should be one auction in index");
+
+      const newIndex = await instance.createAuction.call('b');
+      console.log('auctionsIndex: ' + JSON.stringify(newIndex));
+      console.dir(newIndex);
+      //assert.equal(newIndex.length, 2, "should be two auctions in index");
+
+      const auctions = await instance.getAuctions();
+      console.log('num auctions: ' + JSON.stringify(auctions));
+      console.dir(auctions);
+      assert.equal(auctions.length, 2, "after creating the first two auctions there should be 2 auctions in total");
     });
   });

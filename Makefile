@@ -12,6 +12,6 @@ clean:
 
 snuffle:
 	testrpc & echo $$! > testrpc.pid
-	truffle test
+	truffle test test/EnergyTransferContractTest.js
 	kill `cat testrpc.pid`
 	rm testrpc.pid	

@@ -9,7 +9,7 @@ const getCharge = (charge) => {
   }
 }
 
-const battery = (state = 0, action) => {
+const battery = (state = 60, action) => {
   switch (action.type) {
     case 'SET_BATTERY_CHARGE':
       return getCharge(action.chargeValue)
@@ -25,3 +25,5 @@ const battery = (state = 0, action) => {
 }
 
 export default battery
+
+export const getBatteryLevel = (state) => state

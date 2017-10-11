@@ -17,19 +17,13 @@ contract EnergyTransferContract {
   Records that a unit received by the grid has been allocated to an agreement,
   closing it.
   */
-  event UnitReceived(uint agreementId);
+  event UnitReceived(uint agreementId, uint gridAmount);
 
   // Records that a refund has been issued for a discounted unit.
   event RefundIssued(uint agreementId, uint refundAmount);
 
-  // Records that an attempted refund has failed.
-  event RefundFailed(uint agreementId);
-
   // Records that a payment has been issued for a seller-priced unit.
   event PaymentIssued(uint agreementId, uint paymentAmount);
-
-  // Records that an attempted payment has failed.
-  event PaymentFailed(uint agreementId);
 
   // Records that the grid price for the specified grid has changed.
   event GridPriceChanged(address grid, uint buyPrice, uint sellPrice, uint minimumMargin);
@@ -193,6 +187,10 @@ contract EnergyTransferContract {
       if (priceOffer.price > bid - gridPrice.minimumMargin) {
         continue;
       }
+      // Ignore offers below the grid buy price
+      if (priceOffer.price <= gridPrice.buyPrice) {
+        continue;
+      }
       if (lowestPrice == 0 || priceOffer.price < lowestPrice) {
         lowestPriceId = priceId;
         lowestPrice = priceOffer.price;
@@ -219,6 +217,7 @@ contract EnergyTransferContract {
       buyer: buyer,
       buyPrice: agreedBuyPrice,
       sellPrice: agreedSellPrice});
+
     // Not necessary, but may as well be explicit
     agreement.isPaid = false;
     agreement.isRefunded = false;
@@ -226,5 +225,61 @@ contract EnergyTransferContract {
 
     // Broadcast the happy event
     PriceAgreed(agreementId, grid, buyer, seller, agreedBuyPrice, agreedSellPrice);
+  }
+
+  function unitReceived(address seller) {
+    address grid = msg.sender;
+
+    for (uint agreementId = 0; agreementId < agreements.length; agreementId++) {
+      EnergyTransferAgreement storage agreement = agreements[agreementId];
+      // Ignore agreements that aren't between us and the seller, or are already fulfilled
+      if (agreement.gridPrice.grid != grid) continue;
+      if (agreement.agreedPrice.seller != seller) continue;
+      if (agreement.isFulfilled) continue;
+      break; // On the first matching agreement
+    }
+
+    // No agreement found
+    if (agreement.agreedPrice.buyPrice == 0) {
+      return;
+    }
+
+    // Fulfil the agreement
+    agreement.isFulfilled = true;
+
+    // Take our cut
+    uint gridCut = agreement.agreedPrice.buyPrice - agreement.agreedPrice.sellPrice;
+    grid.transfer(gridCut);
+
+    // Broadcast that a unit was received and assigned to this agreement
+    UnitReceived(agreementId, gridCut);
+  }
+
+  function getRefund(uint agreementId) {
+    EnergyTransferAgreement storage agreement = agreements[agreementId];
+    address buyer = agreement.agreedPrice.buyer;
+    require(msg.sender == buyer);
+
+    require(agreement.isFulfilled);
+    require(!agreement.isRefunded);
+    agreement.isRefunded = true;
+    uint refundAmount = agreement.gridPrice.sellPrice - agreement.agreedPrice.buyPrice;
+    buyer.transfer(refundAmount);
+
+    RefundIssued(agreementId, refundAmount);
+  }
+
+  function getPayment(uint agreementId) {
+    EnergyTransferAgreement storage agreement = agreements[agreementId];
+    address seller = agreement.agreedPrice.seller;
+    require(msg.sender == seller);
+
+    require(agreement.isFulfilled);
+    require(!agreement.isPaid);
+    agreement.isPaid = true;
+    uint paymentAmount = agreement.agreedPrice.sellPrice;
+    seller.transfer(paymentAmount);
+
+    PaymentIssued(agreementId, paymentAmount);
   }
 }

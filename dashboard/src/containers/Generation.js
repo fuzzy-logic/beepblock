@@ -10,7 +10,7 @@ class Generation extends Component {
     const { changeCreationRate, creationRate } = this.props
     return (
       <div>
-        <h3>Energy Creation Rate</h3>
+        <h3>Energy Production Rate</h3>
         <hr />
         <Knob
           value={creationRate}

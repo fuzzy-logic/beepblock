@@ -17,7 +17,7 @@ const Battery = (props) => {
 
 const mapStateToProps = (state, { params }) => {
   return {
-    chargeLevel: getBatteryLevel(state),
+    chargeLevel: parseFloat(getBatteryLevel(state)).toFixed(2),
   };
 };
 

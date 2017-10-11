@@ -11,3 +11,10 @@ export const changeConsumptionRate = (rate) => (dispatch, getState) => {
     consumeRate: rate
   })
 }
+
+export const updateBattery = (amount) => (dispatch, getState) => {
+  dispatch({
+    type: 'ADD_BATTERY_CHARGE',
+    chargeValue: amount
+  })
+}

@@ -12,6 +12,7 @@ class Generation extends Component {
       <div>
         <h3>Energy Production Rate</h3>
         <hr />
+        <br />
         <Knob
           value={creationRate}
           onChange={changeCreationRate}

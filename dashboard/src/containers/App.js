@@ -15,24 +15,24 @@ const App = (props) => {
       columnTemplate={`2fr 1fr 1fr 1fr`}
       style={{ textAlign: 'center', height: '100%'}}>
 
-      <GridItem columns='1 / 5' rows='1 / 2' style={{ backgroundColor: 'red'}} >
+      <GridItem columns='1 / 5' rows='1 / 2' style={{ backgroundColor: 'whitesmoke'}} >
         <Header />
       </GridItem>
 
-      <GridItem columns='1 / 2' rows='2 / 3' style={{ backgroundColor: 'blue'}}>
+      <GridItem columns='1 / 2' rows='2 / 3' style={{ backgroundColor: '#43952a'}}>
         <BuySell />
       </GridItem>
-      <GridItem columns='2 / 3' rows='2 / 3' style={{ backgroundColor: 'green'}}>
+      <GridItem columns='2 / 3' rows='2 / 3' style={{ backgroundColor: '#a4c93f'}}>
         <Generation />
       </GridItem>
-      <GridItem columns='3 / 4' rows='2 / 3' style={{ backgroundColor: 'yellow'}}>
+      <GridItem columns='3 / 4' rows='2 / 3' style={{ backgroundColor: '#fffd54'}}>
         <Consume />
       </GridItem>
-      <GridItem columns='4 / 5' rows='2 / 3' style={{ backgroundColor: 'pink'}}>
+      <GridItem columns='4 / 5' rows='2 / 3' style={{ backgroundColor: '#363636', color: 'white'}}>
         <Battery />
       </GridItem>
 
-      <GridItem columns='1 / 5' rows='3 / 4' style={{ backgroundColor: 'grey'}}>
+      <GridItem columns='1 / 5' rows='3 / 4' style={{ backgroundColor: 'whitesmoke'}}>
         <Footer />
       </GridItem>
     </GridContainer>

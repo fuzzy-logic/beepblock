@@ -12,6 +12,7 @@ class Consume extends Component {
       <div>
         <h3>Energy Consumption Rate</h3>
         <hr />
+        <br />
         <Knob
           value={consumptionRate}
           onChange={changeConsumptionRate}

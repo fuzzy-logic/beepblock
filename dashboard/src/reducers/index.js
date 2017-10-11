@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux'
 
-import battery from './battery'
+import battery, * as batteryDetails from './battery'
 import energyCreation, * as createDetails from './energyCreation'
 import energyConsumption, * as consumeDetails from './energyConsumption'
 
@@ -17,3 +17,6 @@ export const getCreationRate = (state) =>
 
 export const getConsumptionRate = (state) =>
   consumeDetails.getConsumptionRate(state.energyConsumption);
+
+export const getBatteryLevel = (state) =>
+  batteryDetails.getBatteryLevel(state.battery);

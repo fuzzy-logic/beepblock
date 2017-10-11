@@ -1,7 +1,8 @@
 import React from 'react'
+import moment from 'moment'
 
 export default function TransactionListItem(props) {
-  const { 
+  const {
     showFrom,
     showTo,
     transaction
@@ -9,7 +10,7 @@ export default function TransactionListItem(props) {
   return (
     <tr>
       <td>
-        {convertDate(transaction.timestamp)}
+        {moment(transaction.timestamp*1000).format('llll')}
       </td>
       {
         showFrom ?
@@ -30,11 +31,4 @@ export default function TransactionListItem(props) {
       </td>
     </tr>
   )
-}
-
-function convertDate(timestamp) {
-  var d = new Date(timestamp * 1000) //x1000 to convert from seconds to milliseconds 
-  var s = d.toUTCString();
-  s = s.substring(0, s.indexOf("GMT")) + "UTC" //change the confusing 'GMT' to 'UTC' s
-  return s;
 }

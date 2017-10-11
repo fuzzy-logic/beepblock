@@ -11,7 +11,7 @@ contract EnergyTransferContract {
    from this seller to fulfilling this agreement (whether and how it does so
    is up to it).
    */
-  event PriceAgreed(uint agreementId, uint priceId, address grid, address buyer, address seller);
+  event PriceAgreed(uint agreementId, address grid, address buyer, address seller, uint agreedBuyPrice, uint agreedSellPrice);
 
   /*
   Records that a unit received by the grid has been allocated to an agreement,
@@ -35,7 +35,7 @@ contract EnergyTransferContract {
   event GridPriceChanged(address grid, uint buyPrice, uint sellPrice, uint minimumMargin);
 
   // Records that a seller price has been offered.
-  event PriceOffered(uint priceId, uint price);
+  event PriceOffered(address grid, uint priceId, uint price);
 
   struct GridPrice {
     // The address of the wallet/contract which represents the grid.
@@ -67,6 +67,7 @@ contract EnergyTransferContract {
 
   struct PriceOffer {
     address seller;
+    address grid;
     uint price;
     bool isActive;
   }
@@ -124,25 +125,106 @@ contract EnergyTransferContract {
   // Retrieve the current grid price for a given grid.
   function getCurrentGridPrice(address grid) constant returns (uint buyPrice, uint sellPrice, uint minimumMargin) {
     GridPrice storage gridPrice = currentGridPrices[grid];
-    assert(gridPrice.grid != 0);
+    require(gridPrice.grid != 0);
 
     return (gridPrice.buyPrice, gridPrice.sellPrice, gridPrice.minimumMargin);
   }
 
-  function offerPrice(uint price) {
+  function offerPrice(address grid, uint price) {
+    GridPrice storage gridPrice = currentGridPrices[grid];
+
+    // There must be a grid price for the specified grid.
+    require(gridPrice.grid != 0);
+
+    // The offer must be greater than the grid buy price.
+    require(price > gridPrice.buyPrice);
+
+    // The offer must be within the minimum margin of the grid sell price.
+    require(price <= gridPrice.sellPrice - gridPrice.minimumMargin);
+
     uint offerId = priceOffers.length++;
     PriceOffer storage priceOffer = priceOffers[offerId];
     priceOffer.seller = msg.sender;
+    priceOffer.grid = grid;
     priceOffer.price = price;
     priceOffer.isActive = true;
 
-    PriceOffered(offerId, price);
+    PriceOffered(grid, offerId, price);
   }
 
-  function getPriceDetails(uint priceId) constant returns (address seller, uint price, bool isActive) {
+  function getPriceDetails(uint priceId) constant returns (address seller, address grid, uint price, bool isActive) {
     PriceOffer storage priceOffer = priceOffers[priceId];
-    assert(priceOffer.seller != 0);
+    require(priceOffer.seller != 0);
 
-    return (priceOffer.seller, priceOffer.price, priceOffer.isActive);
+    return (priceOffer.seller, priceOffer.grid, priceOffer.price, priceOffer.isActive);
+  }
+
+  function agreePrice(address grid, uint bid) payable {
+    address buyer = msg.sender;
+
+    GridPrice storage gridPrice = currentGridPrices[grid];
+
+    // There must be a grid price for the specified grid.
+    require(gridPrice.grid != 0);
+
+    // The bidder must send the grid sell price for the unit
+    require(msg.value == gridPrice.sellPrice);
+
+    // The bid must be below the grid sell price
+    require(bid < gridPrice.sellPrice);
+
+    // The bid must be within the minimum margin of the grid buy price
+    require(bid - gridPrice.minimumMargin > gridPrice.buyPrice);
+
+    // Very inefficient (linear time) search for a matching price.
+    uint lowestPriceId = 0;
+    uint lowestPrice = 0;
+    for (uint priceId = 0; priceId < priceOffers.length; priceId++) {
+      PriceOffer storage priceOffer = priceOffers[priceId];
+      // Ignore inactive offers
+      if (!priceOffer.isActive) {
+        continue;
+      }
+      // Ignore offers on other grids
+      if (priceOffer.grid != grid) {
+        continue;
+      }
+      // Ignore offers that wouldn't meet the minimum margin
+      if (priceOffer.price > bid - gridPrice.minimumMargin) {
+        continue;
+      }
+      if (lowestPrice == 0 || priceOffer.price < lowestPrice) {
+        lowestPriceId = priceId;
+        lowestPrice = priceOffer.price;
+      }
+    }
+
+    // Payment will be refunded if this fails (i.e. we found no matching price offer)
+    require(lowestPrice > 0);
+
+    // Deactivate the offer, as we're taking it.
+    PriceOffer storage lowestOffer = priceOffers[lowestPriceId];
+    lowestOffer.isActive = false;
+
+    uint agreedSellPrice = lowestOffer.price;
+    uint agreedBuyPrice = lowestOffer.price + gridPrice.minimumMargin;
+    address seller = lowestOffer.seller;
+
+    // Construct an agreement
+    uint agreementId = agreements.length++;
+    EnergyTransferAgreement storage agreement = agreements[agreementId];
+    agreement.gridPrice = gridPrice;
+    agreement.agreedPrice = AgreedPrice({
+      seller: seller,
+      buyer: buyer,
+      buyPrice: agreedBuyPrice,
+      sellPrice: agreedSellPrice});
+    // Not necessary, but may as well be explicit
+    agreement.isPaid = false;
+    agreement.isRefunded = false;
+    agreement.isFulfilled = false;
+
+    // Broadcast the happy event
+    PriceAgreed(agreementId, grid, buyer, seller, agreedBuyPrice, agreedSellPrice);
   }
 }

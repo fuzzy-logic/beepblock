@@ -77,19 +77,15 @@ contract('Energy Transfer Contract', (accounts) => {
     theInstance("Should not accept a seller offer which conflicts with the current grid price", async (instance) => {
       await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
 
-      try {
-        // Offered price is below the current grid buy price
-        await instance.offerPrice(gridAccount, 9, { from: sellerAccount });
-        assert.failed("Offer below the current grid buy price should have been refused");
-      } catch(e) {}
+      await utils.mustFail("Offer below the current grid buy price should have been refused",
+        () => instance.offerPrice(gridAccount, 9, { from: sellerAccount }));
 
-      try {
-        /* There is no possible offer from a buyer that is lower than the grid sell price
-           but within the grid's demanded margin.
-        */
-        await instance.offerPrice(gridAccount, 17, { from: sellerAccount });
-        assert.failed("Offer outside of the grid's minimum margin should have been refused");
-      } catch(e) {}
+      /* tfw there is no possible offer from a buyer that is lower than the grid sell price
+         but within the grid's demanded margin.
+      */
+      await utils.mustFail("Offer outside of the grid's minimum margin should have been refused",
+        () => instance.offerPrice(gridAccount, 17, { from: sellerAccount }));
+
     });
 
     theInstance("Should match the cheapest seller offer below the buyer's bid price", async (instance) => {
@@ -106,6 +102,7 @@ contract('Energy Transfer Contract', (accounts) => {
 
       await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
         .contains("PriceAgreed", {
+          agreementId: 0,
           grid: gridAccount,
           buyer: buyerAccount,
           seller: sellerAccount,
@@ -113,4 +110,50 @@ contract('Energy Transfer Contract', (accounts) => {
           agreedSellPrice: 11
         });
     });
+
+    theInstance("Should allocate a received unit to an unsettled agreement", async (instance) => {
+      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
+      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
+      const agreementId = (await instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+        .logs[0].args.agreementId.c[0];
+
+      await utils.checkLogs(() => instance.unitReceived(sellerAccount))
+        .contains("UnitReceived", {
+          agreementId: agreementId
+        });
+    });
+
+    theInstance("Should issue a refund to the buyer when the agreement is settled", async (instance) => {
+      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
+      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
+      const agreementId = (await instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+        .logs[0].args.agreementId.c[0];
+      await instance.unitReceived(sellerAccount);
+
+      await utils.checkLogs(() => instance.getRefund(agreementId, { from: buyerAccount }))
+        .contains("RefundIssued", {
+          agreementId: agreementId,
+          refundAmount: 3
+        });
+
+        // Cannot withdraw twice
+        utils.mustFail(() => instance.getRefund(agreementId, { from: buyerAccount }));
+    })
+
+    theInstance("Should issue a payment to the seller when the agreement is settled", async (instance) => {
+      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
+      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
+      const agreementId = (await instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+        .logs[0].args.agreementId.c[0];
+      await instance.unitReceived(sellerAccount);
+
+      await utils.checkLogs(() => instance.getPayment(agreementId, { from: sellerAccount }))
+        .contains("PaymentIssued", {
+          agreementId: agreementId,
+          paymentAmount: 12
+        });
+
+      // Cannot withdraw twice
+      utils.mustFail(() => instance.getPayment(agreementId, { from: sellerAccount }));
+    })
 });

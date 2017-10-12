@@ -33,9 +33,7 @@ const Root = () => {
         <Route path="/" component={App}>
           <Route path="login" component={LoginForm} />
           <Route path="signup" component={SignupForm} />
-          <Route path="dashboard" component={
-            requireAuth(Dashboard)
-          } />
+          <Route path="dashboard" component={Dashboard} />
           <Route path="profile" component={
             requireAuth(ProfileForm)
           } />

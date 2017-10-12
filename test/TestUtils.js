@@ -50,8 +50,26 @@ module.exports.checkLogs = (action) => {
 module.exports.instanceFactory = (contract) => {
   return (description, test) => {
     it(description, async() => {
-      const instance = await contract.deployed();
+      const instance = await contract.new();
       await test(instance);
     });
   };
 }
+
+module.exports.mustFail = async function(failureDescription, action) {
+  try {
+    await(action());
+    assert.failed(failureDescription);
+  } catch (e) {}
+}
+
+module.exports.getBalance = function(account) {
+  return new Promise((resolve, reject) =>
+    web3.eth.getBalance(account, (err, hashValue) => {
+      if(err)
+        return error(err);
+      else {
+        return resolve(hashValue);
+      }
+    }));
+  };

@@ -4,11 +4,29 @@
     .errors {
       color: red;
     }
+
     .text-right {
       text-align: right;
     }
+
+    .newRow {
+      animation: highlightRow 2s 1;
+    }
+
+    @keyframes highlightRow {
+      0% {
+        background: #43952a;
+      }
+      50% {
+        background: #a4c93f;
+      }
+      100% {
+        background: #fffd54;
+      }
+    }
   </style>
 </head>
+
 <body>
   <div id="root" />
 </body>

@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require("http");
+
 const models = require('./models');
 const expressGraphQL = require('express-graphql');
 const mongoose = require('mongoose');
@@ -17,6 +19,7 @@ const requireSignIn = passport.authenticate('local', { session: false });
 const passportConfig = require('./services/authService');
 const ethereumService = require('./services/ethereumService');
 const accountService = require('./services/accountService');
+const socketProvider = require('./sockets');
 
 // Config
 const config = require('./config');
@@ -26,6 +29,7 @@ const setup = require('./setup');
 
 // Create a new Express application
 const app = express();
+const server = http.createServer(app);
 
 // Global exception handler
 global.Promise = require('bluebird');
@@ -49,18 +53,19 @@ mongoose.Promise = global.Promise;
 // on success or failure
 mongoose.connect(MONGO_URI);
 mongoose.connection
-    .once('open', async () => {
-      console.log('Connected to MongoLab instance.');
-      console.log('Setup script - running: Account Creation...');
-      await setup.setUpTestAccounts();
-      console.log('Setup script - Account creation completed!');
-      console.log('Setup script - running: Transaction creations...');
-      setTimeout(async () => {
-        await setup.createTransactions();
-        console.log('Setup script - Transaction creation completed!');
-        });
-    })
-    .on('error', error => console.log('Error connecting to MongoLab:', error));
+  .once('open', async () => {
+    console.log('Connected to MongoLab instance.');
+    console.log('Setup script - running: Account Creation...');
+    await setup.setUpTestAccounts();
+    console.log('Setup script - Account creation completed!');
+    console.log('Setup script - running: Transaction creations...');
+    setTimeout(async () => {
+      await setup.createTransactions();
+      console.log('Setup script - Transaction creation completed!');
+      socketProvider.openSockets(server);      
+    });
+  })
+  .on('error', error => console.log('Error connecting to MongoLab:', error));
 
 // Configures express to use sessions.  This places an encrypted identifier
 // on the users cookie.  When a user makes a request, this middleware examines
@@ -111,8 +116,8 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/', requireAuth, function(req, res) {
-  res.send({hi: 'there'});
+app.get('/', requireAuth, function (req, res) {
+  res.send({ hi: 'there' });
 });
 
 app.get('/createAccount', async (req, res) => {
@@ -145,7 +150,7 @@ app.post('/sendCoin', function (req, res) {
     account.sendCoin(toAccount, amount);
     res.send(account);
   });
-  
+
 });
 
 // handle all uncaught exceptions
@@ -156,4 +161,5 @@ process.on('uncaughtException', err => console.error('uncaught exception:', err)
 // or for latest node - https://nodejs.org/api/process.html#process_event_unhandledrejection
 process.on('unhandledRejection', error => console.error('unhandled rejection:', error));
 
-module.exports = app;
+module.exports = server;
+

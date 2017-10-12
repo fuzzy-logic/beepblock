@@ -74,6 +74,7 @@ createAccount = async () => {
 }
 
 module.exports = {
+  config,
   createAccount,
   getAccounts,
   getAccount

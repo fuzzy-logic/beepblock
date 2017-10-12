@@ -63,6 +63,7 @@ contract EnergyTransferContract {
     address seller;
     address grid;
     uint price;
+    uint index;
   }
 
   struct EnergyTransferAgreement {
@@ -112,14 +113,24 @@ contract EnergyTransferContract {
     priceOffers[priceOfferId] = PriceOffer(
       seller = seller,
       grid = grid,
-      price = price
+      price = price,
+      index = index
     );
     return priceOfferId;
   }
 
   function removePriceOffer(uint offerIndex) {
+    uint lastIndex = priceOfferIds.length - 1;
+    require(offerIndex <= lastIndex);
+
     bytes32 priceOfferId = priceOfferIds[offerIndex];
-    priceOfferIds[offerIndex] = bytes32(0); // zero out the offer from the iterable list
+    if (offerIndex <= lastIndex) {
+      bytes32 lastId = priceOfferIds[lastIndex];
+      priceOffers[lastId].index = offerIndex;
+      priceOfferIds[offerIndex] = lastId;
+    }
+
+    priceOfferIds.length--;
     delete priceOffers[priceOfferId];
   }
 

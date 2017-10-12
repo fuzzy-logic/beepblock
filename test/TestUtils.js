@@ -5,8 +5,12 @@ function checkEvent(index, event, name, args) {
     failures.push(`Event name should be "${name}", but was "${event.event}"`);
   }
   Object.keys(args).forEach(key => {
-    const realValue = event.args[key];
+    const realValue = getValue(event.args[key]);
     const expectedValue = args[key];
+    if (expectedValue._receiveValue) {
+      expectedValue._receiveValue(realValue);
+      return;
+    }
     if (realValue != expectedValue) {
       failures.push(`Argument "${key}" should be <${expectedValue}>, but was <${realValue}>`);
     }
@@ -73,3 +77,25 @@ module.exports.getBalance = function(account) {
       }
     }));
   };
+
+  module.exports.ref = () => {
+    let captured = {};
+    return {
+      _receiveValue: (value) => { captured.value = value; },
+      get: () => captured.value
+    };
+  }
+
+  module.exports.any = {
+    _receiveValue: (value) => {}
+  }
+
+  module.exports.matching = function(predicate, failureDescription) {
+    return {
+      _receiveValue: (value) => {
+        if (!predicate(value)) {
+          assert.failed(failureDescription);
+        }
+      }
+    };
+  }

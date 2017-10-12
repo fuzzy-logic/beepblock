@@ -1,14 +1,16 @@
 import React from 'react'
 import { connect } from 'react-redux'
 import { getBatteryLevel } from '../reducers'
+import BatteryDisplay from '../components/BatteryDisplay'
 
 const Battery = (props) => {
   const { chargeLevel } = props
   return (
-    <div>
+    <div style={{textAlign: '-webkit-center'}}>
       <h3>Battery Charge Status</h3>
       <hr />
       <br />
+      <BatteryDisplay charge={chargeLevel}/>
       <h3>{chargeLevel} %</h3>
     </div>
   )

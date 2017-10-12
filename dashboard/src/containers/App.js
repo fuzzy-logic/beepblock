@@ -46,7 +46,7 @@ class App extends Component {
         <GridItem columns='3 / 4' rows='2 / 3' style={{ backgroundColor: '#fffd54'}}>
           <Consume />
         </GridItem>
-        <GridItem columns='4 / 5' rows='2 / 3' style={{ backgroundColor: '#363636', color: 'white'}}>
+        <GridItem columns='4 / 5' rows='2 / 3' style={{ backgroundColor: '#363636', color: 'white', textAlign: 'center'}}>
           <Battery />
         </GridItem>
 

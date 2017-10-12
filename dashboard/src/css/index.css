@@ -3,3 +3,26 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+
+@-webkit-keyframes currentLevel {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+@-moz-keyframes currentLevel {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+@-o-keyframes currentLevel {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+@keyframes currentLevel {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+.currentLevel {
+  -webkit-animation: currentLevel 1s infinite; /* Safari 4+ */
+  -moz-animation:    currentLevel 1s infinite; /* Fx 5+ */
+  -o-animation:      currentLevel 1s infinite; /* Opera 12+ */
+  animation:         currentLevel 1s infinite; /* IE 10+ */
+}

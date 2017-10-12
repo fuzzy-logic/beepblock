@@ -9,13 +9,17 @@ const BatteryDisplay = (props) => {
   }
 
   let rows = [];
-  for (var i = 10; i > 0; i--) {
-    if (Math.floor(charge/10) === i) {
-      rows.push(<tr style={{height:'11px'}}><td className='currentLevel'></td></tr>);
+  for (var i = 9; i >= 0 ; i--) {
+    if (Math.round(charge*100) === 10000) {
+      rows.push(<tr key={i} style={{height:'11px'}}><td style={fullStyle}></td></tr>);
+    } else if(Math.round(charge*100) === 0) {
+      rows.push(<tr key={i} style={{height:'11px'}}><td></td></tr>);
+    } else if (Math.floor(charge/10) === i) {
+      rows.push(<tr key={i} style={{height:'11px'}}><td className='currentLevel'></td></tr>);
     } else if ((charge/10) > i) {
-      rows.push(<tr style={{height:'11px'}}><td style={fullStyle}></td></tr>);
+      rows.push(<tr key={i} style={{height:'11px'}}><td style={fullStyle}></td></tr>);
     } else {
-      rows.push(<tr style={{height:'11px'}}><td></td></tr>);
+      rows.push(<tr key={i} style={{height:'11px'}}><td></td></tr>);
     }
   }
   return(

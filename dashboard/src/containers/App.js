@@ -29,7 +29,7 @@ class App extends Component {
 
   render = () => {
     return (
-      <GridContainer rowTemplate='1fr 6fr 1fr'
+      <GridContainer rowTemplate='1fr 10fr 1fr'
         columnTemplate={`2fr 1fr 1fr 1fr`}
         style={{ textAlign: 'center', height: '100%'}}>
 

@@ -9,7 +9,7 @@ const getCharge = (charge) => {
   }
 }
 
-const battery = (state = 100, action) => {
+const battery = (state = 60, action) => {
   switch (action.type) {
     case 'SET_BATTERY_CHARGE':
       return getCharge(action.chargeValue)

@@ -194,6 +194,11 @@ contract('Energy Transfer Contract', (accounts) => {
           amount: 7 // Two refunds, of 3 and 4, for the agreed transfers.
         });
 
+      await utils.checkLogs(() => instance.withdrawBalance({ from: buyerAccount }))
+        .contains("BalanceWithdrawn", {
+          amount: 0 // Can't withdraw a balance twice.
+        });
+
       // Total withdrawn balance = 50 + 33 + 7 = 90
       // Total funds sent to contract = 60 + 30 = 90
     });

@@ -325,7 +325,7 @@ contract EnergyTransferContract {
   function withdrawBalance() {
     address beneficiary = msg.sender;
     uint amount = balances[beneficiary];
-    balances[beneficiary] -= amount;
+    delete balances[beneficiary];
     beneficiary.transfer(amount);
     BalanceWithdrawn(beneficiary, amount);
   }

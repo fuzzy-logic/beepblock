@@ -346,16 +346,6 @@ contract EnergyTransferContract {
     return priceOfferId;
   }
 
-  function canSendUnit(address seller) constant returns (bool result) {
-    address grid = msg.sender;
-    for (uint agreementIndex = 0; agreementIndex < agreementIds.length; agreementIndex++) {
-      if (agreements[agreementIds[agreementIndex]].agreedPrice.seller == seller) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   function removePriceOffer(uint offerIndex) private {
     uint lastIndex = priceOfferIds.length - 1;
     require(offerIndex <= lastIndex);

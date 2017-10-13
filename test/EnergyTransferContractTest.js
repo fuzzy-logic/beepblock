@@ -162,4 +162,40 @@ contract('Energy Transfer Contract', (accounts) => {
         });
     });
 
+    theInstance("Balances accrue across unit transfers", async (instance) => {
+      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
+
+      // The seller offers three units at different prices.
+      await instance.offerPrice(gridAccount, 13, { from: sellerAccount });
+      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
+      await instance.offerPrice(gridAccount, 11, { from: sellerAccount });
+
+      // The buyer obtains two units at a lower price by agreement, and a third at the grid price.
+      await instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 });
+      await instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 });
+      await instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 });
+
+      await instance.unitReceived(sellerAccount, { from: gridAccount, value: 10 });
+      await instance.unitReceived(sellerAccount, { from: gridAccount, value: 10 });
+      await instance.unitReceived(sellerAccount, { from: gridAccount, value: 10 });
+
+      await utils.checkLogs(() => instance.withdrawBalance({ from: gridAccount }))
+        .contains("BalanceWithdrawn", {
+          amount: 50 // 2 * 15 for the agreed transfers, plus 1 * 20 - a profit of 20 over the 30 paid
+        });
+
+      await utils.checkLogs(() => instance.withdrawBalance({ from: sellerAccount }))
+        .contains("BalanceWithdrawn", {
+          amount: 33 // One unit at the grid price of 10, one at 11 and one at 12
+        });
+
+      await utils.checkLogs(() => instance.withdrawBalance({ from: buyerAccount }))
+        .contains("BalanceWithdrawn", {
+          amount: 7 // Two refunds, of 3 and 4, for the agreed transfers.
+        });
+
+      // Total withdrawn balance = 50 + 33 + 7 = 90
+      // Total funds sent to contract = 60 + 30 = 90
+    });
+
 });

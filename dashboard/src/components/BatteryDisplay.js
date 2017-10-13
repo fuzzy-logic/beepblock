@@ -1,7 +1,7 @@
 import React from 'react'
 
 const BatteryDisplay = (props) => {
-  const { charge } = props
+  const { charge, direction } = props
 
   const fullStyle = {
     backgroundColor: 'white',
@@ -9,13 +9,24 @@ const BatteryDisplay = (props) => {
   }
 
   let rows = [];
-  for (var i = 9; i >= 0 ; i--) {
+  for (let i = 9; i >= 0 ; i--) {
     if (Math.round(charge*100) === 10000) {
       rows.push(<tr key={i} style={{height:'11px'}}><td style={fullStyle}></td></tr>);
     } else if(Math.round(charge*100) === 0) {
       rows.push(<tr key={i} style={{height:'11px'}}><td></td></tr>);
     } else if (Math.floor(charge/10) === i) {
-      rows.push(<tr key={i} style={{height:'11px'}}><td className='currentLevel'></td></tr>);
+
+      switch (direction) {
+        case 'up':
+          rows.push(<tr key={i} style={{height:'11px'}}><td className='currentUp'></td></tr>);
+          break;
+        case 'down':
+          rows.push(<tr key={i} style={{height:'11px'}}><td className='currentDown'></td></tr>);
+          break;
+        default:
+          rows.push(<tr key={i} style={{height:'11px'}}><td className='currentLevel'></td></tr>);
+      }
+
     } else if ((charge/10) > i) {
       rows.push(<tr key={i} style={{height:'11px'}}><td style={fullStyle}></td></tr>);
     } else {

@@ -6,30 +6,38 @@ pragma solidity ^0.4.13;
 contract EnergyTransferContract {
 
   /*
+  EVENTS
+  */
+
+  /*
    Records that an agreement has been reached to trade a unit
    from the specified seller. The grid may allocate a received unit
    from this seller to fulfilling this agreement (whether and how it does so
    is up to it).
    */
-  event PriceAgreed(uint agreementId, address grid, address buyer, address seller, uint agreedBuyPrice, uint agreedSellPrice);
+  event PriceAgreed(bytes32 agreementId, address grid, address buyer, address seller, uint agreedBuyPrice, uint agreedSellPrice);
 
   /*
   Records that a unit received by the grid has been allocated to an agreement,
   closing it.
   */
-  event UnitReceived(uint agreementId, uint gridAmount);
+  event UnitReceived(bytes32 agreementId, uint gridAmount);
 
   // Records that a refund has been issued for a discounted unit.
-  event RefundIssued(uint agreementId, uint refundAmount);
+  event RefundIssued(bytes32 agreementId, uint refundAmount);
 
   // Records that a payment has been issued for a seller-priced unit.
-  event PaymentIssued(uint agreementId, uint paymentAmount);
+  event PaymentIssued(bytes32 agreementId, uint paymentAmount);
 
   // Records that the grid price for the specified grid has changed.
   event GridPriceChanged(address grid, uint buyPrice, uint sellPrice, uint minimumMargin);
 
   // Records that a seller price has been offered.
-  event PriceOffered(address grid, uint priceId, uint price);
+  event PriceOffered(address grid, bytes32 priceId, uint price);
+
+  /*
+  STRUCTS
+  */
 
   struct GridPrice {
     // The address of the wallet/contract which represents the grid.
@@ -63,7 +71,7 @@ contract EnergyTransferContract {
     address seller;
     address grid;
     uint price;
-    bool isActive;
+    uint index;
   }
 
   struct EnergyTransferAgreement {
@@ -88,20 +96,33 @@ contract EnergyTransferContract {
     // The price agreed by the participants at the time of the agreement.
     AgreedPrice agreedPrice;
 
-    // Whether the seller has been paid.
-    bool isPaid;
-
-    // Whether the buyer has been refunded.
-    bool isRefunded;
-
-    // Whether a unit received by the grid has been allocated to fulfil this agreement.
-    bool isFulfilled;
+    uint index;
   }
 
-  mapping(address => GridPrice) currentGridPrices;
-  PriceOffer[] priceOffers;
-  EnergyTransferAgreement[] agreements;
+  struct AllocatedFunds {
+    address beneficiary;
+    uint amount;
+  }
 
+  /*
+  STORAGE ALLOCATION
+  */
+  mapping(address => GridPrice) currentGridPrices;
+
+  mapping(bytes32 => PriceOffer) priceOffers;
+  bytes32[] priceOfferIds;
+
+  mapping(bytes32 => EnergyTransferAgreement) agreements;
+  bytes32[] agreementIds;
+
+  mapping(bytes32 => AllocatedFunds) pendingRefunds;
+  mapping(bytes32 => AllocatedFunds) pendingPayments;
+
+  /*
+  A grid calls publishGridPrice to publish the prices at which it will buy and sell
+  units, and the minimum margin it will accept on a trade between a buyer and a
+  seller (which corresponds to the grid's "cut" of the transaction).
+  */
   function publishGridPrice(uint buyPrice, uint sellPrice, uint minimumMargin) {
     address grid = msg.sender;
 
@@ -124,6 +145,9 @@ contract EnergyTransferContract {
     return (gridPrice.buyPrice, gridPrice.sellPrice, gridPrice.minimumMargin);
   }
 
+  /*
+  A seller calls offerPrice to offer a price for a single unit.
+  */
   function offerPrice(address grid, uint price) {
     GridPrice storage gridPrice = currentGridPrices[grid];
 
@@ -136,23 +160,30 @@ contract EnergyTransferContract {
     // The offer must be within the minimum margin of the grid sell price.
     require(price <= gridPrice.sellPrice - gridPrice.minimumMargin);
 
-    uint offerId = priceOffers.length++;
-    PriceOffer storage priceOffer = priceOffers[offerId];
-    priceOffer.seller = msg.sender;
-    priceOffer.grid = grid;
-    priceOffer.price = price;
-    priceOffer.isActive = true;
+    bytes32 offerId = recordPriceOffer(msg.sender, grid, price);
 
     PriceOffered(grid, offerId, price);
   }
 
-  function getPriceDetails(uint priceId) constant returns (address seller, address grid, uint price, bool isActive) {
+  /*
+  Utility method to retrieve a price.
+  */
+  function getPriceDetails(bytes32 priceId) constant returns (address seller, address grid, uint price) {
     PriceOffer storage priceOffer = priceOffers[priceId];
     require(priceOffer.seller != 0);
 
-    return (priceOffer.seller, priceOffer.grid, priceOffer.price, priceOffer.isActive);
+    return (priceOffer.seller, priceOffer.grid, priceOffer.price);
   }
 
+  /*
+  The buyer calls agreePrice with a bid to try to agree a price with a seller
+  for a unit of energy.
+
+  The buyer must transfer the full grid price of the unit to the contract in advance,
+  as this is used to pay the seller and the grid. The buyer can claim back a refund
+  of the difference in price once the unit has been received by the grid and allocated
+  to the agreement created here.
+  */
   function agreePrice(address grid, uint bid) payable {
     address buyer = msg.sender;
 
@@ -170,15 +201,18 @@ contract EnergyTransferContract {
     // The bid must be within the minimum margin of the grid buy price
     require(bid - gridPrice.minimumMargin > gridPrice.buyPrice);
 
-    // Very inefficient (linear time) search for a matching price.
-    uint lowestPriceId = 0;
-    uint lowestPrice = 0;
-    for (uint priceId = 0; priceId < priceOffers.length; priceId++) {
-      PriceOffer storage priceOffer = priceOffers[priceId];
+    // Very inefficient search for a matching price.
+    uint lowestPriceIndex = 0;
+    uint lowestPrice = 0xFFFFFFFFFFFFFFFF;
+    address lowestSeller = 0;
+    for (uint priceIndex = 0; priceIndex < priceOfferIds.length; priceIndex++) {
+      bytes32 priceId = priceOfferIds[priceIndex];
       // Ignore inactive offers
-      if (!priceOffer.isActive) {
+      if (priceId == 0) {
         continue;
       }
+
+      PriceOffer storage priceOffer = priceOffers[priceId];
       // Ignore offers on other grids
       if (priceOffer.grid != grid) {
         continue;
@@ -191,51 +225,52 @@ contract EnergyTransferContract {
       if (priceOffer.price <= gridPrice.buyPrice) {
         continue;
       }
-      if (lowestPrice == 0 || priceOffer.price < lowestPrice) {
-        lowestPriceId = priceId;
+      if (priceOffer.price < lowestPrice) {
+        lowestPriceIndex = priceIndex;
         lowestPrice = priceOffer.price;
+        lowestSeller = priceOffer.seller;
       }
     }
 
     // Payment will be refunded if this fails (i.e. we found no matching price offer)
-    require(lowestPrice > 0);
+    require(lowestPrice < 0xFFFFFFFFFFFFFFFF);
 
-    // Deactivate the offer, as we're taking it.
-    PriceOffer storage lowestOffer = priceOffers[lowestPriceId];
-    lowestOffer.isActive = false;
+    // Delete the offer, as we're taking it.
+    removePriceOffer(lowestPriceIndex);
 
-    uint agreedSellPrice = lowestOffer.price;
-    uint agreedBuyPrice = lowestOffer.price + gridPrice.minimumMargin;
-    address seller = lowestOffer.seller;
-
-    // Construct an agreement
-    uint agreementId = agreements.length++;
-    EnergyTransferAgreement storage agreement = agreements[agreementId];
-    agreement.gridPrice = gridPrice;
-    agreement.agreedPrice = AgreedPrice({
-      seller: seller,
-      buyer: buyer,
-      buyPrice: agreedBuyPrice,
-      sellPrice: agreedSellPrice});
-
-    // Not necessary, but may as well be explicit
-    agreement.isPaid = false;
-    agreement.isRefunded = false;
-    agreement.isFulfilled = false;
-
-    // Broadcast the happy event
-    PriceAgreed(agreementId, grid, buyer, seller, agreedBuyPrice, agreedSellPrice);
+    takeOffer(gridPrice, buyer, lowestSeller, lowestPrice, gridPrice.minimumMargin);
   }
 
+  function takeOffer(GridPrice gridPrice, address buyer, address seller, uint price, uint minimumMargin) private {
+    uint agreedSellPrice = price;
+    uint agreedBuyPrice = price + minimumMargin;
+
+    // Record an agreement
+    bytes32 agreementId = recordAgreement(gridPrice, seller, buyer, agreedBuyPrice, agreedSellPrice);
+
+    // Broadcast the happy event
+    PriceAgreed(agreementId, gridPrice.grid, buyer, seller, agreedBuyPrice, agreedSellPrice);
+  }
+
+  /*
+  A grid calls unitReceived to record that a unit has been received from a seller.
+  This function searches for an agreement to allocate the unit to, then allocates
+  refund and payment for buyer and seller, takes the grid's cut, and deletes
+  the agreement.
+  */
   function unitReceived(address seller) {
     address grid = msg.sender;
 
-    for (uint agreementId = 0; agreementId < agreements.length; agreementId++) {
+    for (uint agreementIndex = 0; agreementIndex < agreementIds.length; agreementIndex++) {
+      bytes32 agreementId = agreementIds[agreementIndex];
+      // Ignore already-fulfilled agreements
+      if (agreementId == bytes32(0)) {
+        continue;
+      }
       EnergyTransferAgreement storage agreement = agreements[agreementId];
       // Ignore agreements that aren't between us and the seller, or are already fulfilled
       if (agreement.gridPrice.grid != grid) continue;
       if (agreement.agreedPrice.seller != seller) continue;
-      if (agreement.isFulfilled) continue;
       break; // On the first matching agreement
     }
 
@@ -244,42 +279,124 @@ contract EnergyTransferContract {
       return;
     }
 
-    // Fulfil the agreement
-    agreement.isFulfilled = true;
+    // Write refund and payment
+    pendingRefunds[agreementId] = AllocatedFunds({
+      beneficiary: agreement.agreedPrice.buyer,
+      amount: agreement.gridPrice.sellPrice - agreement.agreedPrice.buyPrice
+    });
+
+    pendingPayments[agreementId] = AllocatedFunds({
+      beneficiary: seller,
+      amount: agreement.agreedPrice.sellPrice
+    });
+
+    // Calculate our cut
+    uint gridCut = agreement.agreedPrice.buyPrice - agreement.agreedPrice.sellPrice;
+
+    // Delete the agreement
+    removeAgreement(agreementIndex);
 
     // Take our cut
-    uint gridCut = agreement.agreedPrice.buyPrice - agreement.agreedPrice.sellPrice;
     grid.transfer(gridCut);
 
     // Broadcast that a unit was received and assigned to this agreement
     UnitReceived(agreementId, gridCut);
   }
 
-  function getRefund(uint agreementId) {
-    EnergyTransferAgreement storage agreement = agreements[agreementId];
-    address buyer = agreement.agreedPrice.buyer;
-    require(msg.sender == buyer);
+  /*
+  A buyer calls getRefund to retrieve the refund due for a traded energy unit
+  */
+  function getRefund(bytes32 agreementId) {
+    address buyer = msg.sender;
+    AllocatedFunds storage refund = pendingRefunds[agreementId];
 
-    require(agreement.isFulfilled);
-    require(!agreement.isRefunded);
-    agreement.isRefunded = true;
-    uint refundAmount = agreement.gridPrice.sellPrice - agreement.agreedPrice.buyPrice;
+    require(refund.beneficiary == buyer);
+    uint refundAmount = refund.amount;
+
+    delete pendingRefunds[agreementId];
     buyer.transfer(refundAmount);
-
     RefundIssued(agreementId, refundAmount);
   }
 
-  function getPayment(uint agreementId) {
-    EnergyTransferAgreement storage agreement = agreements[agreementId];
-    address seller = agreement.agreedPrice.seller;
-    require(msg.sender == seller);
+  /*
+  A seller calls getPayment to retrieve the payment due for a traded energy unit
+  */
+  function getPayment(bytes32 agreementId) {
+    address seller = msg.sender;
+    AllocatedFunds storage payment = pendingPayments[agreementId];
 
-    require(agreement.isFulfilled);
-    require(!agreement.isPaid);
-    agreement.isPaid = true;
-    uint paymentAmount = agreement.agreedPrice.sellPrice;
+    require(payment.beneficiary == seller);
+    uint paymentAmount = payment.amount;
+
+    delete pendingPayments[agreementId];
     seller.transfer(paymentAmount);
-
     PaymentIssued(agreementId, paymentAmount);
+  }
+
+  /*
+  STORAGE MANAGEMENT
+  */
+  function recordPriceOffer(address seller, address grid, uint price) private returns (bytes32 priceOfferId) {
+    priceOfferId = keccak256(seller, grid, price);
+    uint index = priceOfferIds.length++;
+    priceOfferIds[index] = priceOfferId;
+    priceOffers[priceOfferId] = PriceOffer(
+      seller = seller,
+      grid = grid,
+      price = price,
+      index = index
+    );
+    return priceOfferId;
+  }
+
+  function removePriceOffer(uint offerIndex) private {
+    uint lastIndex = priceOfferIds.length - 1;
+    require(offerIndex <= lastIndex);
+
+    bytes32 priceOfferId = priceOfferIds[offerIndex];
+    if (offerIndex <= lastIndex) {
+      bytes32 lastId = priceOfferIds[lastIndex];
+      priceOffers[lastId].index = offerIndex;
+      priceOfferIds[offerIndex] = lastId;
+    }
+
+    priceOfferIds.length--;
+    delete priceOffers[priceOfferId];
+  }
+
+  function recordAgreement(GridPrice gridPrice, address seller, address buyer, uint agreedBuyPrice, uint agreedSellPrice) private returns (bytes32 agreementId) {
+    agreementId = keccak256(
+      gridPrice.grid, gridPrice.buyPrice, gridPrice.sellPrice, gridPrice.minimumMargin,
+      seller, buyer, agreedBuyPrice, agreedSellPrice);
+
+    uint index = agreementIds.length++;
+    agreementIds[index] = agreementId;
+
+    agreements[agreementId] = EnergyTransferAgreement({
+      gridPrice: gridPrice,
+      agreedPrice: AgreedPrice({
+        seller: seller,
+        buyer: buyer,
+        buyPrice: agreedBuyPrice,
+        sellPrice: agreedSellPrice}),
+      index: index
+    });
+
+    return agreementId;
+  }
+
+  function removeAgreement(uint agreementIndex) private {
+    uint lastIndex = agreementIds.length - 1;
+    require(agreementIndex <= lastIndex);
+
+    bytes32 agreementId = agreementIds[agreementIndex];
+    if (agreementIndex <= lastIndex) {
+      bytes32 lastId = agreementIds[lastIndex];
+      agreements[lastId].index = agreementIndex;
+      agreementIds[agreementIndex] = lastId;
+    }
+
+    agreementIds.length--;
+    delete agreements[agreementId];
   }
 }

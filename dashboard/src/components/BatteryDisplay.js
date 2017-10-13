@@ -9,7 +9,7 @@ const BatteryDisplay = (props) => {
   }
 
   let rows = [];
-  for (var i = 9; i >= 0 ; i--) {
+  for (let i = 9; i >= 0 ; i--) {
     if (Math.round(charge*100) === 10000) {
       rows.push(<tr key={i} style={{height:'11px'}}><td style={fullStyle}></td></tr>);
     } else if(Math.round(charge*100) === 0) {
@@ -21,7 +21,6 @@ const BatteryDisplay = (props) => {
           rows.push(<tr key={i} style={{height:'11px'}}><td className='currentUp'></td></tr>);
           break;
         case 'down':
-          console.log('here')
           rows.push(<tr key={i} style={{height:'11px'}}><td className='currentDown'></td></tr>);
           break;
         default:

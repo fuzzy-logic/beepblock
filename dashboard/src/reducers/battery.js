@@ -1,3 +1,4 @@
+import { combineReducers } from 'redux'
 
 const getCharge = (charge) => {
   if (charge > 100) {
@@ -9,7 +10,7 @@ const getCharge = (charge) => {
   }
 }
 
-const battery = (state = 60, action) => {
+const charge = (state = 60, action) => {
   switch (action.type) {
     case 'SET_BATTERY_CHARGE':
       return getCharge(action.chargeValue)
@@ -22,6 +23,28 @@ const battery = (state = 60, action) => {
   }
 }
 
+const direction = (state = 'down', action) => {
+  switch (action.type) {
+    case 'ADD_BATTERY_CHARGE':
+      if (action.chargeValue > 0 ) {
+        return 'up'
+      } else if (action.chargeValue < 0) {
+        return 'down'
+      } else {
+        return 'stable'
+      }
+
+    default:
+      return state
+  }
+}
+
+const battery = combineReducers({
+  charge,
+  direction
+});
+
 export default battery
 
-export const getBatteryLevel = (state) => state
+export const getBatteryLevel = (state) => state.charge
+export const getBatteryDirection = (state) => state.direction

@@ -23,6 +23,9 @@ export const getConsumptionRate = (state) =>
 export const getBatteryLevel = (state) =>
   batteryDetails.getBatteryLevel(state.battery);
 
+export const getBatteryDirection = (state) =>
+  batteryDetails.getBatteryDirection(state.battery);
+
 export const getGridPrice = (state) =>
   buysellDetails.getGridPrice(state.buysell);
 

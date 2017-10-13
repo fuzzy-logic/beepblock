@@ -5,24 +5,73 @@ body {
 }
 
 @-webkit-keyframes currentLevel {
-  from { background-color: red; }
+  from { background-color: white; }
   to { background-color: inherit; }
 }
 @-moz-keyframes currentLevel {
-  from { background-color: red; }
+  from { background-color: white; }
   to { background-color: inherit; }
 }
 @-o-keyframes currentLevel {
-  from { background-color: red; }
+  from { background-color: white; }
   to { background-color: inherit; }
 }
 @keyframes currentLevel {
+  from { background-color: white; }
+  to { background-color: inherit; }
+}
+
+@-webkit-keyframes currentUp {
+  from { background-color: green; }
+  to { background-color: inherit; }
+}
+@-moz-keyframes currentUp {
+  from { background-color: green; }
+  to { background-color: inherit; }
+}
+@-o-keyframes currentUp {
+  from { background-color: green; }
+  to { background-color: inherit; }
+}
+@keyframes currentUp {
+  from { background-color: green; }
+  to { background-color: inherit; }
+}
+
+@-webkit-keyframes currentDown {
   from { background-color: red; }
   to { background-color: inherit; }
 }
+@-moz-keyframes currentDown {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+@-o-keyframes currentDown {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+@keyframes currentDown {
+  from { background-color: red; }
+  to { background-color: inherit; }
+}
+
 .currentLevel {
   -webkit-animation: currentLevel 1s infinite; /* Safari 4+ */
   -moz-animation:    currentLevel 1s infinite; /* Fx 5+ */
   -o-animation:      currentLevel 1s infinite; /* Opera 12+ */
   animation:         currentLevel 1s infinite; /* IE 10+ */
+}
+
+.currentUp {
+  -webkit-animation: currentUp 1s infinite; /* Safari 4+ */
+  -moz-animation:    currentUp 1s infinite; /* Fx 5+ */
+  -o-animation:      currentUp 1s infinite; /* Opera 12+ */
+  animation:         currentUp 1s infinite; /* IE 10+ */
+}
+
+.currentDown {
+  -webkit-animation: currentDown 1s infinite; /* Safari 4+ */
+  -moz-animation:    currentDown 1s infinite; /* Fx 5+ */
+  -o-animation:      currentDown 1s infinite; /* Opera 12+ */
+  animation:         currentDown 1s infinite; /* IE 10+ */
 }

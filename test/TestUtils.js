@@ -5,6 +5,10 @@ function checkEvent(index, event, name, args) {
     failures.push(`Event name should be "${name}", but was "${event.event}"`);
   }
   Object.keys(args).forEach(key => {
+    if (event.args[key] == undefined) {
+      failures.push(`Key ${key} not found`);
+      return;
+    }
     const realValue = getValue(event.args[key]);
     const expectedValue = args[key];
     if (expectedValue._receiveValue) {
@@ -15,7 +19,7 @@ function checkEvent(index, event, name, args) {
       failures.push(`Argument "${key}" should be <${expectedValue}>, but was <${realValue}>`);
     }
   });
-  assert(failures.length === 0, `Event ${index}:\n${failures.join("\n")}`);
+  assert(failures.length === 0, `Event ${index} (${event.event}):\n${failures.join("\n")}`);
 }
 
 function getValue(value) {

@@ -55,23 +55,13 @@ contract('Energy Transfer Contract', (accounts) => {
     });
 
     theInstance("Should record seller offers", async (instance) => {
-      const priceId = utils.ref();
       await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
 
       await utils.checkLogs(() => instance.offerPrice(gridAccount, 12, { from: sellerAccount }))
         .contains("PriceOffered", {
           grid: gridAccount,
-          priceId: priceId,
           price: 12
         });
-
-      const priceDetails = toPriceDetails(await instance.getPriceDetails(priceId.get()));
-
-      assert.deepEqual(priceDetails, {
-        seller: sellerAccount,
-        grid: gridAccount,
-        price: 12
-      });
     });
 
     theInstance("Should not accept a seller offer which conflicts with the current grid price", async (instance) => {
@@ -91,14 +81,12 @@ contract('Energy Transfer Contract', (accounts) => {
     theInstance("Should match a buyer bid with the lowest valid seller offer", async (instance) => {
       await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
 
-      // The seller offers three units at different prices.
-      await instance.offerPrice(gridAccount, 13, { from: sellerAccount });
+      // The seller offers two units at different prices.
       await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
       await instance.offerPrice(gridAccount, 11, { from: sellerAccount });
 
-      await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+      await utils.checkLogs(() => instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 }))
         .contains("PriceAgreed", {
-          agreementId: utils.any,
           grid: gridAccount,
           buyer: buyerAccount,
           seller: sellerAccount,
@@ -107,75 +95,71 @@ contract('Energy Transfer Contract', (accounts) => {
         });
 
         // When we want a second unit, we get the second (higher) price.
-        await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+        await utils.checkLogs(() => instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 }))
           .contains("PriceAgreed", {
-            agreementId: utils.any,
             grid: gridAccount,
             buyer: buyerAccount,
             seller: sellerAccount,
             agreedBuyPrice: 17, // buyPrice + grid margin
             agreedSellPrice: 12
           });
-
-        // We cannot get the highest price, as the margin isn't enough, so a third bid fails
-        await utils.mustFail(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }));
     });
+
+    theInstance("Unmatched bid pays the grid buy price straight to the grid", async (instance) => {
+      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
+
+      // The seller offers three units at different prices.
+      await instance.offerPrice(gridAccount, 13, { from: sellerAccount });
+      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
+      await instance.offerPrice(gridAccount, 11, { from: sellerAccount });
+
+      // The buyer obtains two units at a lower price by agreement
+      await instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 });
+      await instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 });
+
+      // There is no price on offer matching a further request, so the unit is
+      // obtained directly from the grid, at the grid price.
+      await utils.checkLogs(() => instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 }))
+        .contains("UnitProvidedAtGridPrice", {
+          grid: gridAccount,
+          buyer: buyerAccount,
+          price: 20
+        })
+        .contains("BalanceAdded", {
+          beneficiary: gridAccount,
+          amount: 20
+        });
+    })
 
     theInstance("Should allocate a received unit to an unsettled agreement", async (instance) => {
-      const agreementId = utils.ref();
-
       await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
       await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
-      await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
+      await utils.checkLogs(() => instance.requestUnit(gridAccount, 17, { from: buyerAccount, value: 20 }))
         .contains("PriceAgreed", {
-          agreementId: agreementId
+          grid: gridAccount,
+          buyer: buyerAccount,
+          seller: sellerAccount,
+          agreedBuyPrice: 17,
+          agreedSellPrice: 12
         });
 
-      await utils.checkLogs(() => instance.unitReceived(sellerAccount))
+      await utils.checkLogs(() => instance.unitReceived(sellerAccount, { from: gridAccount, value: 10 }))
         .contains("UnitReceived", {
-          agreementId: agreementId.get()
+          grid: gridAccount,
+          seller: sellerAccount
+        })
+        .contains("BalanceAdded", {
+          beneficiary: buyerAccount,
+          amount: 3 // The buyer's refund
+        })
+        .contains("BalanceAdded", {
+          beneficiary: sellerAccount,
+          amount: 12 // The seller's asking price
+        })
+        .contains("BalanceAdded", {
+          beneficiary: gridAccount,
+          amount: 15 // The grid buy price, returned, plus the grid's cut on the transaction
         });
     });
 
-    theInstance("Should issue a refund to the buyer when the agreement is settled", async (instance) => {
-      const agreementId = utils.ref();
-
-      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
-      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
-      await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
-        .contains("PriceAgreed", {
-          agreementId: agreementId
-        });
-
-      await instance.unitReceived(sellerAccount);
-
-      await utils.checkLogs(() => instance.getRefund(agreementId.get(), { from: buyerAccount }))
-        .contains("RefundIssued", {
-          agreementId: agreementId.get(),
-          refundAmount: 3
-        });
-
-        // Cannot withdraw twice
-        utils.mustFail(() => instance.getRefund(agreementId.get(), { from: buyerAccount }));
-    })
-
-    theInstance("Should issue a payment to the seller when the agreement is settled", async (instance) => {
-      const agreementId = utils.ref();
-      await instance.publishGridPrice(10, 20, 5, { from: gridAccount });
-      await instance.offerPrice(gridAccount, 12, { from: sellerAccount });
-      await utils.checkLogs(() => instance.agreePrice(gridAccount, 17, { from: buyerAccount, value: 20 }))
-        .contains("PriceAgreed", {
-          agreementId: agreementId
-        });
-      await instance.unitReceived(sellerAccount);
-
-      await utils.checkLogs(() => instance.getPayment(agreementId.get(), { from: sellerAccount }))
-        .contains("PaymentIssued", {
-          agreementId: agreementId.get(),
-          paymentAmount: 12
-        });
-
-      // Cannot withdraw twice
-      utils.mustFail(() => instance.getPayment(agreementId.get(), { from: sellerAccount }));
-    })
 });

@@ -32,6 +32,7 @@
     "html-webpack-plugin": "^2.26.0",
     "http": "0.0.0",
     "lodash": "^4.17.4",
+    "moment": "^2.19.0",
     "mongoose": "^4.7.8",
     "nodemon": "^1.12.1",
     "passport": "^0.3.2",
